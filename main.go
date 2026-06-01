@@ -22,43 +22,38 @@ type PoliceServer struct {
 
 // Hàm xử lý việc Ghi mới hoặc Cập nhật hồ sơ vụ án
 func (s *PoliceServer) PutCase(ctx context.Context, req *pb.CaseRequest) (*pb.Response, error) {
-	// 1. Ghi dữ liệu tuần tự xuống lõi GoLevelDB cục bộ trên đĩa của đồn
+	// 1. Thực hiện ghi dữ liệu thô vào đĩa cứng GoLevelDB
 	err := s.db.Put([]byte(req.CaseId), []byte(req.CaseDataJson), nil)
 	if err != nil {
-		return &pb.Response{Success: false, Message: "Lỗi ghi dữ liệu vào đĩa cục bộ"}, nil
+		log.Printf("[LỖI CORE LEVELDB] Không thể ghi khóa %s xuống đĩa: %v\n", req.CaseId, err)
+		return &pb.Response{Success: false, Message: "Lỗi ghi đĩa cục bộ"}, nil
 	}
-	fmt.Printf("[NODE LOG] Đã ghi hồ sơ vụ án thành công: %s\n", req.CaseId)
+	
+	// Log này phải hiện ra ở Terminal của Đồn thì mới chắc chắn dữ liệu đã vào DB
+	fmt.Printf("[NODE LOG] Đã ghi hồ sơ vụ án vào GoLevelDB thành công: %s\n", req.CaseId)
 
-	// 2. Cơ chế Nhân bản dữ liệu (Replication): Nếu đây là dữ liệu gốc từ Gateway,
-	// tiến hành nhân bản ngay sang các đồn dự phòng (Slave Replicas)
+	// 2. Cơ chế nhân bản (Replication) sao lưu bất đồng bộ
 	if !req.IsReplicationRoute {
 		for _, targetAddr := range s.replicaNodes {
-			// Chạy Goroutine nền để đồng bộ không làm nghẽn tiến trình chính
 			go func(addr string) {
 				conn, err := grpc.Dial(addr, grpc.WithInsecure())
 				if err != nil {
-					log.Printf("[REPLICATION ERROR] Không thể kết nối tới đồn dự phòng %s: %v", addr, err)
 					return
 				}
 				defer conn.Close()
 
 				client := pb.NewPoliceStorageServiceClient(conn)
-				// Bật cờ is_replication_route = true để đồn nhận không gửi ngược lại tạo vòng lặp vô hạn
-				_, err = client.PutCase(context.Background(), &pb.CaseRequest{
+				_, _ = client.PutCase(context.Background(), &pb.CaseRequest{
 					CaseId:             req.CaseId,
 					CaseDataJson:       req.CaseDataJson,
-					IsReplicationRoute: true,
+					IsReplicationRoute: true, // Chặn vòng lặp vô hạn
 				})
-				if err != nil {
-					log.Printf("[REPLICATION ERROR] Thất bại khi nhân bản sang %s", addr)
-				} else {
-					fmt.Printf("[REPLICATION SUCCESS] Đã đồng bộ bản sao vụ án %s sang đồn %s\n", req.CaseId, addr)
-				}
 			}(targetAddr)
 		}
 	}
 
-	return &pb.Response{Success: true, Message: "Hồ sơ vụ án đã được lưu trữ an toàn và nhân bản"}, nil
+	// TRẢ VỀ SUCCESS = TRUE (Bắt buộc phải có để Proxy nhận diện thành công)
+	return &pb.Response{Success: true, Message: "Thành công"}, nil
 }
 
 // Hàm xử lý việc Đọc/Truy xuất hồ sơ vụ án

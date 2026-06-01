@@ -13,11 +13,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Cấu trúc vòng tròn băm nhất quán phục vụ phân mảnh (Sharding Ring)
 type PoliceHashRing struct {
-	vnodes       int               // Số node ảo để phân bổ đều tải dữ liệu trên đĩa
-	ring         map[uint32]string // Bản đồ vị trí băm -> Địa chỉ Đồn cảnh sát thật
-	sortedHashes []uint32          // Mảng lưu giá trị hash đã sắp xếp để tìm kiếm nhị phân
+	vnodes       int               
+	ring         map[uint32]string 
+	sortedHashes []uint32          
 }
 
 func NewPoliceHashRing(vnodes int) *PoliceHashRing {
@@ -27,7 +26,6 @@ func NewPoliceHashRing(vnodes int) *PoliceHashRing {
 	}
 }
 
-// Thêm một Đồn Cảnh Sát mới vào cụm phân mảnh
 func (h *PoliceHashRing) AddStation(stationAddr string) {
 	for i := 0; i < h.vnodes; i++ {
 		vnodeKey := stationAddr + "#" + strconv.Itoa(i)
@@ -40,7 +38,21 @@ func (h *PoliceHashRing) AddStation(stationAddr string) {
 	})
 }
 
-// Định tuyến: Tìm đồn chịu trách nhiệm quản lý cho Mã vụ án (Key)
+func (h *PoliceHashRing) RemoveStation(stationAddr string) {
+	newSortedHashes := make([]uint32, 0)
+	for hash, addr := range h.ring {
+		if addr == stationAddr {
+			delete(h.ring, hash)
+		} else {
+			newSortedHashes = append(newSortedHashes, hash)
+		}
+	}
+	sort.Slice(newSortedHashes, func(i, j int) bool {
+		return newSortedHashes[i] < newSortedHashes[j]
+	})
+	h.sortedHashes = newSortedHashes
+}
+
 func (h *PoliceHashRing) RouteCase(caseID string) string {
 	if len(h.sortedHashes) == 0 {
 		return ""
@@ -50,23 +62,18 @@ func (h *PoliceHashRing) RouteCase(caseID string) string {
 		return h.sortedHashes[i] >= hash
 	})
 	if idx == len(h.sortedHashes) {
-		idx = 0 // Vòng tròn khép kín
+		idx = 0 
 	}
 	return h.ring[h.sortedHashes[idx]]
 }
 
 func main() {
-	// Khởi tạo vòng tròn băm điều phối phân mảnh
 	ring := NewPoliceHashRing(10)
-
-	// Giả lập hệ thống có 2 cụm đồn cảnh sát phân mảnh dữ liệu quy mô lớn
-	// Đồn 1 chạy cổng 50051, Đồn 2 chạy cổng 50052
 	ring.AddStation("localhost:50051")
 	ring.AddStation("localhost:50052")
 
-	fmt.Println("=== TRUNG TÂM ĐIỀU HƯỚNG CẢNH SÁT (PROXY SHARDING) SẴN SÀNG ===")
+	fmt.Println("=== TRUNG TÂM ĐIỀU HƯỚNG CẢNH SÁT MỞ RỘNG (FAILOVER & READ ROUTING) ===")
 
-	// Giả lập danh sách hồ sơ vụ án hình sự cần nạp vào hệ thống phân tán
 	cases := []struct {
 		ID   string
 		Data string
@@ -77,32 +84,75 @@ func main() {
 		{"VA_2026_DN004", `{"title": "Buon lau hang hoa", "suspect": "Pham Thi D", "status": "Pending"}`},
 	}
 
-	// Tiến hành định tuyến phân mảnh tự động bằng Consistent Hashing
-	for _, c := range cases {
-		// 1. Tính toán xem Vụ án này phải chuyển về Đồn nào lưu trữ
-		targetStation := ring.RouteCase(c.ID)
-		fmt.Printf("[SHARDING ROUTER] Vụ án %s được định tuyến về phân vùng: %s\n", c.ID, targetStation)
+	fmt.Println("\n>>> TIẾN TRÌNH 1: GHI DỮ LIỆU (WRITE SHARDING WITH FAILOVER) <<<")
+	fmt.Println("-----------------------------------------------------------------")
 
-		// 2. Thiết lập kết nối mạng gRPC gửi tới đồn đó để nạp vào GoLevelDB tương ứng
-		conn, err := grpc.Dial(targetStation, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(2*time.Second))
-		if err != nil {
-			log.Printf("-> LỖI: Không thể kết nối tới đồn %s", targetStation)
-			continue
-		}
+	for _, c := range cases {
+		targetStation := ring.RouteCase(c.ID)
+		fmt.Printf("[ROUTER] Vụ án %s ban đầu thuộc về Đồn: %s\n", c.ID, targetStation)
+
+		conn, err := grpc.Dial(targetStation, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(1*time.Second))
 		
+		if err != nil {
+			fmt.Printf("[⚠️ SỰ CỐ] Đồn %s không phản hồi (Mất điện/Sập nguồn)!\n", targetStation)
+			fmt.Printf("[FAILOVER] Tự động cô lập đồn %s và tính toán lại tuyến đường...\n", targetStation)
+			
+			ring.RemoveStation(targetStation)
+			targetStation = ring.RouteCase(c.ID)
+			fmt.Printf("[FAILOVER] Tuyến đường mới được xác lập chuyển hướng về Đồn: %s\n", targetStation)
+			
+			conn, err = grpc.Dial(targetStation, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(1*time.Second))
+			if err != nil {
+				log.Printf("-> [THẤT BẠI LỚN] Cả cụm đồn thay thế cũng sập!")
+				continue
+			}
+		}
+
 		client := pb.NewPoliceStorageServiceClient(conn)
-		res, err := client.PutCase(context.Background(), &pb.CaseRequest{
+		
+		// Đổi từ dấu gạch dưới (_) thành biến `putRes` để hứng dữ liệu trả về từ Đồn
+		putRes, err := client.PutCase(context.Background(), &pb.CaseRequest{
 			CaseId:             c.ID,
 			CaseDataJson:       c.Data,
-			IsReplicationRoute: false, // Dữ liệu gốc từ client
+			IsReplicationRoute: false,
 		})
-		
-		if err == nil && res.Success {
-			fmt.Printf("   -> KẾT QUẢ: Đã lưu trữ thành công lên %s\n", targetStation)
+
+		// KIỂM TRA: Phải vừa không có lỗi mạng (err == nil) vừa được Đồn xác nhận (putRes.Success == true)
+		if err == nil && putRes != nil && putRes.Success {
+			fmt.Printf("   -> [THÀNH CÔNG] Hồ sơ đã hạ đĩa an toàn tại: %s\n", targetStation)
 		} else {
-			log.Printf("   -> KẾT QUẢ: Lưu trữ thất bại")
+			log.Printf("   -> [THẤT BẠI] Đồn từ chối ghi hoặc lỗi mạng gRPC. Err: %v", err)
 		}
 		conn.Close()
-		fmt.Println("---------------------------------------------------------")
+		fmt.Println("-----------------------------------------------------------------")
+	}
+
+	time.Sleep(1 * time.Second)
+
+	fmt.Println("\n>>> TIẾN TRÌNH 2: TRUY VẤN DỮ LIỆU TẬP TRUNG (CENTRALIZED READ ROUTING) <<<")
+	fmt.Println("-----------------------------------------------------------------")
+	
+	searchKeys := []string{"VA_2026_HN001", "VA_2026_DN004", "KEY_GIA_9999"}
+
+	for _, key := range searchKeys {
+		readStation := ring.RouteCase(key)
+		fmt.Printf("[READ ROUTER] Đang truy vấn vị trí lưu trữ của mã %s... -> Đồn phụ trách: %s\n", key, readStation)
+
+		conn, err := grpc.Dial(readStation, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(1*time.Second))
+		if err != nil {
+			fmt.Printf("   -> [LỖI MẠNG] Không thể kết nối đến đồn đọc dữ liệu %s\n", readStation)
+			continue
+		}
+
+		client := pb.NewPoliceStorageServiceClient(conn)
+		getRes, getErr := client.GetCase(context.Background(), &pb.GetCaseRequest{CaseId: key})
+
+		if getErr == nil && getRes.Success {
+			fmt.Printf("   -> [KẾT QUẢ ĐỌC ĐĨA]: Tìm thấy hồ sơ! Dữ liệu: %s\n", getRes.CaseDataJson)
+		} else {
+			fmt.Printf("   -> [KẾT QUẢ ĐỌC ĐĨA]: ❌ Không tồn tại hồ sơ vụ án này trong hệ thống!\n")
+		}
+		conn.Close()
+		fmt.Println("-----------------------------------------------------------------")
 	}
 }
