@@ -1,65 +1,114 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net"
+	"os"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"google.golang.org/grpc"
+
+	// Thay đổi đường dẫn import này khớp với tên go mod của bạn
+	pb "goleveldb-demo/storage"
 )
 
-func main() {
-	// 1. Khởi tạo hoặc Mở cơ sở dữ liệu (tự động tạo thư mục "db_data" nếu chưa có)
-	db, err := leveldb.OpenFile("db_data", nil)
+type PoliceServer struct {
+	pb.UnimplementedPoliceStorageServiceServer
+	db           *leveldb.DB
+	replicaNodes []string // Danh sách IP/Cổng của các Đồn dự phòng để nhân bản dữ liệu
+}
+
+// Hàm xử lý việc Ghi mới hoặc Cập nhật hồ sơ vụ án
+func (s *PoliceServer) PutCase(ctx context.Context, req *pb.CaseRequest) (*pb.Response, error) {
+	// 1. Ghi dữ liệu tuần tự xuống lõi GoLevelDB cục bộ trên đĩa của đồn
+	err := s.db.Put([]byte(req.CaseId), []byte(req.CaseDataJson), nil)
 	if err != nil {
-		log.Fatalf("Không thể mở cơ sở dữ liệu: %v", err)
+		return &pb.Response{Success: false, Message: "Lỗi ghi dữ liệu vào đĩa cục bộ"}, nil
 	}
-	// Đảm bảo đóng DB khi hàm main kết thúc để giải phóng bộ nhớ và khóa tệp
+	fmt.Printf("[NODE LOG] Đã ghi hồ sơ vụ án thành công: %s\n", req.CaseId)
+
+	// 2. Cơ chế Nhân bản dữ liệu (Replication): Nếu đây là dữ liệu gốc từ Gateway,
+	// tiến hành nhân bản ngay sang các đồn dự phòng (Slave Replicas)
+	if !req.IsReplicationRoute {
+		for _, targetAddr := range s.replicaNodes {
+			// Chạy Goroutine nền để đồng bộ không làm nghẽn tiến trình chính
+			go func(addr string) {
+				conn, err := grpc.Dial(addr, grpc.WithInsecure())
+				if err != nil {
+					log.Printf("[REPLICATION ERROR] Không thể kết nối tới đồn dự phòng %s: %v", addr, err)
+					return
+				}
+				defer conn.Close()
+
+				client := pb.NewPoliceStorageServiceClient(conn)
+				// Bật cờ is_replication_route = true để đồn nhận không gửi ngược lại tạo vòng lặp vô hạn
+				_, err = client.PutCase(context.Background(), &pb.CaseRequest{
+					CaseId:             req.CaseId,
+					CaseDataJson:       req.CaseDataJson,
+					IsReplicationRoute: true,
+				})
+				if err != nil {
+					log.Printf("[REPLICATION ERROR] Thất bại khi nhân bản sang %s", addr)
+				} else {
+					fmt.Printf("[REPLICATION SUCCESS] Đã đồng bộ bản sao vụ án %s sang đồn %s\n", req.CaseId, addr)
+				}
+			}(targetAddr)
+		}
+	}
+
+	return &pb.Response{Success: true, Message: "Hồ sơ vụ án đã được lưu trữ an toàn và nhân bản"}, nil
+}
+
+// Hàm xử lý việc Đọc/Truy xuất hồ sơ vụ án
+func (s *PoliceServer) GetCase(ctx context.Context, req *pb.GetCaseRequest) (*pb.GetCaseResponse, error) {
+	val, err := s.db.Get([]byte(req.CaseId), nil)
+	if err != nil {
+		return &pb.GetCaseResponse{Success: false, CaseDataJson: ""}, nil
+	}
+	return &pb.GetCaseResponse{Success: true, CaseDataJson: string(val)}, nil
+}
+
+func main() {
+	// Lấy tham số cổng và thư mục DB từ dòng lệnh khi chạy để test nhiều Node trên 1 máy
+	// Cú pháp chạy test: go run main.go [Cổng gRPC] [Thư mục lưu trữ DB] [Cổng Node nhân bản nếu có]
+	if len(os.Args) < 3 {
+		log.Fatalf("Sử dụng: go run main.go [Port] [DB_Folder] [Replica_Port_1] [Replica_Port_2]...")
+	}
+	port := os.Args[1]
+	dbFolder := os.Args[2]
+
+	// Thu thập các node slave cần nhân bản dữ liệu
+	var replicas []string
+	if len(os.Args) > 3 {
+		for i := 3; i < len(os.Args); i++ {
+			replicas = append(replicas, "localhost:"+os.Args[i])
+		}
+	}
+
+	// Khởi mở thư viện GoLevelDB nhúng
+	db, err := leveldb.OpenFile(dbFolder, nil)
+	if err != nil {
+		log.Fatalf("Không thể khởi động phân vùng lưu trữ GoLevelDB: %v", err)
+	}
 	defer db.Close()
 
-	fmt.Println("=== 1. Khởi tạo goleveldb thành công ===")
-
-	// 2. Thao tác GHI dữ liệu (Put)
-	err = db.Put([]byte("mssv_01"), []byte("Nguyen Van A"), nil)
+	// Khởi tạo mạng gRPC Server cho Đồn Cảnh Sát
+	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		log.Fatalf("Lỗi khi ghi dữ liệu: %v", err)
-	}
-	db.Put([]byte("mssv_02"), []byte("Tran Thi B"), nil)
-	db.Put([]byte("mssv_03"), []byte("Le Van C"), nil)
-	fmt.Println("-> Đã ghi thành công 3 cặp Key-Value vào DB.")
-
-	// 3. Thao tác ĐỌC dữ liệu (Get)
-	value, err := db.Get([]byte("mssv_01"), nil)
-	if err != nil {
-		log.Printf("Lỗi khi đọc dữ liệu mssv_01: %v", err)
-	} else {
-		fmt.Printf("-> Đọc dữ liệu thành công! Key 'mssv_01' có Value là: %s\n", string(value))
+		log.Fatalf("Lỗi mở cổng mạng: %v", err)
 	}
 
-	// 4. Thao tác DUYỆT dữ liệu (Iterator) - Tự động sắp xếp theo thứ tự Key
-	fmt.Println("\n=== 2. Duyệt toàn bộ dữ liệu hiện tại ===")
-	iter := db.NewIterator(nil, nil)
-	for iter.Next() {
-		key := iter.Key()
-		val := iter.Value()
-		fmt.Printf("   Key: %s | Value: %s\n", string(key), string(val))
+	grpcServer := grpc.NewServer()
+	server := &PoliceServer{
+		db:           db,
+		replicaNodes: replicas,
 	}
-	iter.Release() // Giải phóng tài nguyên sau khi duyệt xong
-	err = iter.Error()
-	if err != nil {
-		log.Fatalf("Lỗi trong quá trình duyệt dữ liệu: %v", err)
-	}
+	pb.RegisterPoliceStorageServiceServer(grpcServer, server)
 
-	// 5. Thao tác XÓA dữ liệu (Delete)
-	fmt.Println("\n=== 3. Thử nghiệm Xóa dữ liệu ===")
-	err = db.Delete([]byte("mssv_02"), nil)
-	if err != nil {
-		log.Fatalf("Lỗi khi xóa dữ liệu: %v", err)
-	}
-	fmt.Println("-> Đã xóa Key 'mssv_02'.")
-
-	// Đọc lại xem còn mssv_02 không
-	_, err = db.Get([]byte("mssv_02"), nil)
-	if err == leveldb.ErrNotFound {
-		fmt.Println("-> Kiểm tra lại: Key 'mssv_02' thực sự không còn tồn tại (ErrNotFound).")
+	fmt.Printf("=== ĐỒN CẢNH SÁT ĐANG HOẠT ĐỘNG TẠI CỔNG :%s (Lưu trữ: %s) ===\n", port, dbFolder)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Lỗi vận hành gRPC: %v", err)
 	}
 }

@@ -1,0 +1,30 @@
+syntax = "proto3";
+package storage;
+option go_package = "./storage";
+
+service PoliceStorageService {
+    // Hàm ghi/đồng bộ hồ sơ vụ án
+    rpc PutCase (CaseRequest) returns (Response);
+    // Hàm truy xuất hồ sơ vụ án
+    rpc GetCase (GetCaseRequest) returns (GetCaseResponse);
+}
+
+message CaseRequest {
+    string case_id = 1;              // Mã vụ án (Key) - Ví dụ: VA_2026_001
+    string case_data_json = 2;       // Toàn bộ thông tin vụ án dạng JSON (Value)
+    bool is_replication_route = 3;  // Cờ đánh dấu luồng đồng bộ giữa các đồn
+}
+
+message GetCaseRequest {
+    string case_id = 1;
+}
+
+message GetCaseResponse {
+    string case_data_json = 1;
+    bool success = 2;
+}
+
+message Response {
+    bool success = 1;
+    string message = 2;
+}
