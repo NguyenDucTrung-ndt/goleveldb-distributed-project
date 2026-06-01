@@ -1,6 +1,0 @@
-=============== Jun 2, 2026 (+07) ===============
-00:31:01.565909 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
-00:31:01.568055 db@open opening
-00:31:01.568578 version@stat F·[] S·0B[] Sc·[]
-00:31:01.569624 db@janitor F·2 G·0
-00:31:01.569624 db@open done T·1.5694ms
