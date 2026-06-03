@@ -23,6 +23,12 @@ type UserAccount struct {
 	FullName string `json:"full_name"`
 }
 
+const (
+	roleChief  = "chief"
+	roleDeputy = "deputy"
+	roleViewer = "viewer"
+)
+
 type CaseSummary struct {
 	CaseID        string `json:"case_id"`
 	OccurredAt    string `json:"occurred_at"`
@@ -65,19 +71,19 @@ func (h *PoliceHashRing) RouteCase(caseID string) string {
 	return h.ring[h.sortedHashes[idx]]
 }
 
-// HÀM KIỂM TRA TRẠNG THÁI THỰC TẾ (ĐÃ SỬA LỖI LAZY CONNECTION CỦA gRPC)
+// HÃ€M KIá»‚M TRA TRáº NG THÃI THá»°C Táº¾ (ÄÃƒ Sá»¬A Lá»–I LAZY CONNECTION Cá»¦A gRPC)
 func checkNodeStatus(addr string) string {
-	// Sử dụng grpc.WithBlock() để ép gRPC phải kết nối và bắt tay (Handshake) ngay lập tức
-	// Nếu cổng bị đóng hoặc mất điện, nó sẽ chặn lại và báo lỗi ngay sau 200 mili-giây
+	// Sá»­ dá»¥ng grpc.WithBlock() Ä‘á»ƒ Ã©p gRPC pháº£i káº¿t ná»‘i vÃ  báº¯t tay (Handshake) ngay láº­p tá»©c
+	// Náº¿u cá»•ng bá»‹ Ä‘Ã³ng hoáº·c máº¥t Ä‘iá»‡n, nÃ³ sáº½ cháº·n láº¡i vÃ  bÃ¡o lá»—i ngay sau 200 mili-giÃ¢y
 	conn, err := grpc.Dial(
 		addr,
 		grpc.WithInsecure(),
-		grpc.WithBlock(), // QUAN TRỌNG: Ép kiểm tra kết nối vật lý ngay lập tức
+		grpc.WithBlock(), // QUAN TRá»ŒNG: Ã‰p kiá»ƒm tra káº¿t ná»‘i váº­t lÃ½ ngay láº­p tá»©c
 		grpc.WithTimeout(200*time.Millisecond),
 	)
 
 	if err != nil {
-		// Nếu không kết nối được (Đồn bị tắt/Mất điện) -> Trả về OFFLINE ngay
+		// Náº¿u khÃ´ng káº¿t ná»‘i Ä‘Æ°á»£c (Äá»“n bá»‹ táº¯t/Máº¥t Ä‘iá»‡n) -> Tráº£ vá» OFFLINE ngay
 		return "OFFLINE"
 	}
 	defer conn.Close()
@@ -91,12 +97,12 @@ var replicationMap = map[string]string{
 }
 
 var userDB = map[string]UserAccount{
-	"sep2026":    {Password: "matkhausep", Role: "admin", FullName: "Thượng tá Nguyễn Văn A (Trưởng Phân Khu)"},
-	"pho_don_01": {Password: "matkhaupho", Role: "admin", FullName: "Thiếu tá Lê Hoàng Nam (Phó Trưởng Đồn)"},
+	"sep2026":    {Password: "matkhausep", Role: roleChief, FullName: "Thượng tá Nguyễn Văn A (Trưởng Đồn)"},
+	"pho_don_01": {Password: "matkhaupho", Role: roleDeputy, FullName: "Thiếu tá Lê Hoàng Nam (Phó Trưởng Đồn)"},
 
-	"chiensi01":   {Password: "matkhau01", Role: "viewer", FullName: "Trung úy Trần Văn B (Trinh sát Hình sự)"},
-	"trinhsat_02": {Password: "matkhau02", Role: "viewer", FullName: "Đại úy Phạm Minh Hải (Trinh sát Địa bàn)"},
-	"phap_y_03":   {Password: "matkhau03", Role: "viewer", FullName: "Thượng úy Nguyễn Thị Thu (Chuyên viên Pháp y)"},
+	"chiensi01":   {Password: "matkhau01", Role: roleViewer, FullName: "Trung úy Trần Văn B (Trinh sát Hình sự)"},
+	"trinhsat_02": {Password: "matkhau02", Role: roleViewer, FullName: "Đại úy Phạm Minh Hải (Trinh sát Địa bàn)"},
+	"phap_y_03":   {Password: "matkhau03", Role: roleViewer, FullName: "Thượng úy Nguyễn Thị Thu (Chuyên viên Pháp y)"},
 }
 
 var globalCases = []CaseSummary{
@@ -115,13 +121,50 @@ var currentRole = ""
 var currentFullName = ""
 var isLoggedIn = false
 
-// Hàm tự động lưu mảng vụ án xuống file json cục bộ để không bị mất khi tắt proxy
+func canAddCase(role string) bool {
+	return role == roleChief || role == roleDeputy
+}
+
+func canManageUsers(role string) bool {
+	return role == roleChief
+}
+
+func putCaseToStation(addr, caseID, caseDataJSON string) (bool, string) {
+	if addr == "" {
+		return false, "Không tìm thấy đồn dự phòng."
+	}
+
+	dialCtx, cancelDial := context.WithTimeout(context.Background(), 700*time.Millisecond)
+	defer cancelDial()
+
+	conn, err := grpc.DialContext(dialCtx, addr, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return false, fmt.Sprintf("Đồn %s offline.", addr)
+	}
+	defer conn.Close()
+
+	callCtx, cancelCall := context.WithTimeout(context.Background(), 700*time.Millisecond)
+	defer cancelCall()
+
+	client := pb.NewPoliceStorageServiceClient(conn)
+	resp, err := client.PutCase(callCtx, &pb.CaseRequest{CaseId: caseID, CaseDataJson: caseDataJSON})
+	if err != nil {
+		return false, fmt.Sprintf("Đồn %s không ghi được: %v", addr, err)
+	}
+	if !resp.Success {
+		return false, fmt.Sprintf("Đồn %s từ chối ghi: %s", addr, resp.Message)
+	}
+
+	return true, fmt.Sprintf("Đồn %s đã ghi thành công.", addr)
+}
+
+// HÃ m tá»± Ä‘á»™ng lÆ°u máº£ng vá»¥ Ã¡n xuá»‘ng file json cá»¥c bá»™ Ä‘á»ƒ khÃ´ng bá»‹ máº¥t khi táº¯t proxy
 func saveCasesToFile() {
 	data, _ := json.MarshalIndent(globalCases, "", "  ")
 	_ = ioutil.WriteFile("global_cases_cache.json", data, 0644)
 }
 
-// Hàm tự động nạp lại vụ án khi bật proxy lên
+// HÃ m tá»± Ä‘á»™ng náº¡p láº¡i vá»¥ Ã¡n khi báº­t proxy lÃªn
 func loadCasesFromFile() {
 	data, err := ioutil.ReadFile("global_cases_cache.json")
 	if err == nil {
@@ -131,9 +174,10 @@ func loadCasesFromFile() {
 func main() {
 	loadCasesFromFile()
 	ring := NewPoliceHashRing(10)
-	ring.AddStation("localhost:50051")
-	ring.AddStation("localhost:50052")
+	ring.AddStation("127.0.0.1:50051")
+	ring.AddStation("127.0.0.1:50052")
 	r := gin.Default()
+	_ = r.SetTrustedProxies(nil)
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/", func(c *gin.Context) {
@@ -146,10 +190,18 @@ func main() {
 		status2Rep := checkNodeStatus("127.0.0.1:50054")
 
 		c.HTML(http.StatusOK, "index.html", gin.H{
-			"LoggedIn": isLoggedIn, "Role": currentRole, "FullName": currentFullName,
-			"UserList": userDB, "RecentCases": globalCases, "SuccessMsg": msg,
-			"Status1": status1, "Status1Rep": status1Rep,
-			"Status2": status2, "Status2Rep": status2Rep,
+			"LoggedIn":       isLoggedIn,
+			"Role":           currentRole,
+			"FullName":       currentFullName,
+			"CanAddCase":     canAddCase(currentRole),
+			"CanManageUsers": canManageUsers(currentRole),
+			"UserList":       userDB,
+			"RecentCases":    globalCases,
+			"SuccessMsg":     msg,
+			"Status1":        status1,
+			"Status1Rep":     status1Rep,
+			"Status2":        status2,
+			"Status2Rep":     status2Rep,
 		})
 	})
 
@@ -170,7 +222,7 @@ func main() {
 	})
 
 	r.POST("/add", func(c *gin.Context) {
-		if !isLoggedIn || currentRole != "admin" {
+		if !isLoggedIn || !canAddCase(currentRole) {
 			c.String(http.StatusForbidden, "Truy cập bị chặn.")
 			return
 		}
@@ -188,38 +240,13 @@ func main() {
 
 		targetMaster := ring.RouteCase(caseID)
 		targetReplica := replicationMap[targetMaster]
-		msgLog := ""
-
-		// Thử ghi Master hình sự
-		connM, errM := grpc.Dial(targetMaster, grpc.WithInsecure(), grpc.WithTimeout(500*time.Millisecond))
-		if errM == nil {
-			defer connM.Close()
-			clientM := pb.NewPoliceStorageServiceClient(connM)
-			_, errPut := clientM.PutCase(context.Background(), &pb.CaseRequest{CaseId: caseID, CaseDataJson: caseDataJSON})
-			if errPut == nil {
-				msgLog += ""
-			} else {
-				msgLog += ""
-			}
-		} else {
-			msgLog += fmt.Sprintf("[Đồn Gốc %s: MẤT ĐIỆN SẬP NGUỒN] ", targetMaster)
+		masterOK, masterMsg := putCaseToStation(targetMaster, caseID, caseDataJSON)
+		replicaOK, replicaMsg := putCaseToStation(targetReplica, caseID, caseDataJSON)
+		if !masterOK && !replicaOK {
+			c.String(http.StatusServiceUnavailable, "Không thể thêm hồ sơ: tất cả đồn lưu trữ đang tắt hoặc không phản hồi. %s %s", masterMsg, replicaMsg)
+			return
 		}
-
-		// Thử đồng bộ Replica dự phòng (GIỮ NGUYÊN LOGIC ĐỂ HỆ THỐNG KHÔNG BỊ MẤT TÍNH NĂNG SAO LƯU)
-		connR, errR := grpc.Dial(targetReplica, grpc.WithInsecure(), grpc.WithTimeout(500*time.Millisecond))
-		if errR == nil {
-			defer connR.Close()
-			clientR := pb.NewPoliceStorageServiceClient(connR)
-			_, errRep := clientR.PutCase(context.Background(), &pb.CaseRequest{CaseId: caseID, CaseDataJson: caseDataJSON})
-
-			if errRep == nil {
-				msgLog += ""
-			} else {
-				msgLog += ""
-			}
-		} else {
-			msgLog += ""
-		}
+		msgLog := masterMsg + " " + replicaMsg
 		globalCases = append(globalCases, CaseSummary{
 			CaseID:        caseID,
 			OccurredAt:    occurredAt,
@@ -235,15 +262,15 @@ func main() {
 		c.Redirect(http.StatusSeeOther, "/?msg="+msgLog)
 	})
 	// =========================================================================
-	// HÀM XỬ LÝ LỌC VÀ TRUY VẤN VỤ ÁN ĐA ĐIỀU KIỆN (ROUTE /search ĐỘC LẬP)
+	// HÃ€M Xá»¬ LÃ Lá»ŒC VÃ€ TRUY Váº¤N Vá»¤ ÃN ÄA ÄIá»€U KIá»†N (ROUTE /search Äá»˜C Láº¬P)
 	// =========================================================================
 	r.GET("/search", func(c *gin.Context) {
-		// 1. Lấy dữ liệu từ URL Query gửi lên từ Form HTML
+		// 1. Láº¥y dá»¯ liá»‡u tá»« URL Query gá»­i lÃªn tá»« Form HTML
 		startTime := c.Query("start_time")
 		endTime := c.Query("end_time")
 		searchTitle := strings.ToLower(strings.TrimSpace(c.Query("search_title")))
 
-		// 2. Định dạng lại chuỗi thời gian từ HTML (thay chữ T bằng dấu cách để khớp dữ liệu đĩa cứng)
+		// 2. Äá»‹nh dáº¡ng láº¡i chuá»—i thá»i gian tá»« HTML (thay chá»¯ T báº±ng dáº¥u cÃ¡ch Ä‘á»ƒ khá»›p dá»¯ liá»‡u Ä‘Ä©a cá»©ng)
 		if startTime != "" {
 			startTime = strings.Replace(startTime, "T", " ", 1)
 		}
@@ -253,64 +280,66 @@ func main() {
 
 		var filteredCases []CaseSummary
 
-		// 3. Duyệt mảng dữ liệu tổng để sàng lọc
+		// 3. Duyá»‡t máº£ng dá»¯ liá»‡u tá»•ng Ä‘á»ƒ sÃ ng lá»c
 		for _, v := range globalCases {
 			match := true
 
-			// Lọc điều kiện 1: Từ ngày (Bỏ qua nếu ô nhập trống)
+			// Lá»c Ä‘iá»u kiá»‡n 1: Tá»« ngÃ y (Bá» qua náº¿u Ã´ nháº­p trá»‘ng)
 			if startTime != "" && v.OccurredAt < startTime {
 				match = false
 			}
-			// Lọc điều kiện 2: Đến ngày (Bỏ qua nếu ô nhập trống)
+			// Lá»c Ä‘iá»u kiá»‡n 2: Äáº¿n ngÃ y (Bá» qua náº¿u Ã´ nháº­p trá»‘ng)
 			if endTime != "" && v.OccurredAt > endTime {
 				match = false
 			}
-			// Lọc điều kiện 3: Từ khóa tội danh/hành vi
+			// Lá»c Ä‘iá»u kiá»‡n 3: Tá»« khÃ³a tá»™i danh/hÃ nh vi
 			if searchTitle != "" {
 				inTitle := strings.Contains(strings.ToLower(v.Title), searchTitle)
 				inSuspect := strings.Contains(strings.ToLower(v.Suspect), searchTitle)
 				inDesc := strings.Contains(strings.ToLower(v.Description), searchTitle)
 
-				// Nếu từ khóa không nằm trong Tiêu đề, Nghi phạm, cũng không có trong Mô tả -> Loại
+				// Náº¿u tá»« khÃ³a khÃ´ng náº±m trong TiÃªu Ä‘á», Nghi pháº¡m, cÅ©ng khÃ´ng cÃ³ trong MÃ´ táº£ -> Loáº¡i
 				if !inTitle && !inSuspect && !inDesc {
 					match = false
 				}
 			}
 
-			// Nếu vượt qua tất cả bộ lọc -> Đưa vào danh sách kết quả
+			// Náº¿u vÆ°á»£t qua táº¥t cáº£ bá»™ lá»c -> ÄÆ°a vÃ o danh sÃ¡ch káº¿t quáº£
 			if match {
 				filteredCases = append(filteredCases, v)
 			}
 		}
 
-		// 4. Trả về giao diện chuyên dụng search.html cùng dữ liệu sau khi lọc
+		// 4. Tráº£ vá» giao diá»‡n chuyÃªn dá»¥ng search.html cÃ¹ng dá»¯ liá»‡u sau khi lá»c
 		c.HTML(http.StatusOK, "search.html", gin.H{
-			"LoggedIn":    isLoggedIn,
-			"Role":        currentRole,
-			"FullName":    currentFullName,
-			"RecentCases": filteredCases, // Danh sách vụ án đã thu hẹp
-			"SuccessMsg":  fmt.Sprintf("Hệ thống tìm thấy %d kết quả phù hợp nghiệp vụ.", len(filteredCases)),
+			"LoggedIn":       isLoggedIn,
+			"Role":           currentRole,
+			"FullName":       currentFullName,
+			"CanAddCase":     canAddCase(currentRole),
+			"CanManageUsers": canManageUsers(currentRole),
+			"RecentCases":    filteredCases, // Danh sÃ¡ch vá»¥ Ã¡n Ä‘Ã£ thu háº¹p
+			"SuccessMsg":     fmt.Sprintf("Hệ thống tìm thấy %d kết quả phù hợp nghiệp vụ.", len(filteredCases)),
 
-			// Đẩy ngược lại giá trị để giữ chữ trên ô nhập sau khi load trang
+			// Äáº©y ngÆ°á»£c láº¡i giÃ¡ trá»‹ Ä‘á»ƒ giá»¯ chá»¯ trÃªn Ã´ nháº­p sau khi load trang
 			"StartTime":   c.Query("start_time"),
 			"EndTime":     c.Query("end_time"),
 			"SearchTitle": c.Query("search_title"),
 		})
 	})
 	r.GET("/export", func(c *gin.Context) {
-		// 1. Thiết lập Header để trình duyệt hiểu đây là lệnh tải file về máy
+		// 1. Thiáº¿t láº­p Header Ä‘á»ƒ trÃ¬nh duyá»‡t hiá»ƒu Ä‘Ã¢y lÃ  lá»‡nh táº£i file vá» mÃ¡y
 		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Disposition", "attachment; filename=Bao_Cao_Ho_So_Vu_An.csv")
 		c.Header("Content-Type", "text/csv; charset=utf-8")
 
-		// 2. GIẢI QUYẾT LỖI FONT: Ghi mã BOM (Byte Order Mark) của UTF-8 vào đầu file.
-		// Nhờ 3 byte này, khi double-click mở trực tiếp bằng Excel trên Windows sẽ không bị lỗi chữ Tiếng Việt.
+		// 2. GIáº¢I QUYáº¾T Lá»–I FONT: Ghi mÃ£ BOM (Byte Order Mark) cá»§a UTF-8 vÃ o Ä‘áº§u file.
+		// Nhá» 3 byte nÃ y, khi double-click má»Ÿ trá»±c tiáº¿p báº±ng Excel trÃªn Windows sáº½ khÃ´ng bá»‹ lá»—i chá»¯ Tiáº¿ng Viá»‡t.
 		c.Writer.Write([]byte{0xEF, 0xBB, 0xBF})
 
-		// 3. Tạo dòng tiêu đề cột (Header) cho file Excel
+		// 3. Táº¡o dÃ²ng tiÃªu Ä‘á» cá»™t (Header) cho file Excel
 		csvContent := "Mã Vụ Án,Ngày Xảy Ra,Tội Danh/Tiêu Đề,Đối Tượng Nghi Vấn,Mô Tả Diễn Biến,Báo Cáo Pháp Y,Vật Chứng Tịch Thu\n"
 
-		// 4. Vòng lặp duyệt qua mảng dữ liệu tổng (đọc từ cache/đĩa cứng LevelDB lên) để ghi từng dòng
+		// 4. VÃ²ng láº·p duyá»‡t qua máº£ng dá»¯ liá»‡u tá»•ng (Ä‘á»c tá»« cache/Ä‘Ä©a cá»©ng LevelDB lÃªn) Ä‘á»ƒ ghi tá»«ng dÃ²ng
 		for _, v := range globalCases {
 
 			cleanDesc := strings.ReplaceAll(strings.ReplaceAll(v.Description, "\n", " "), ",", ";")
@@ -319,7 +348,7 @@ func main() {
 			cleanTitle := strings.ReplaceAll(v.Title, ",", ";")
 			cleanSuspect := strings.ReplaceAll(v.Suspect, ",", ";")
 
-			// Nối các trường dữ liệu lại với nhau, ngăn cách bằng dấu phẩy theo chuẩn CSV
+			// Ná»‘i cÃ¡c trÆ°á»ng dá»¯ liá»‡u láº¡i vá»›i nhau, ngÄƒn cÃ¡ch báº±ng dáº¥u pháº©y theo chuáº©n CSV
 			csvContent += fmt.Sprintf("%s,%s,%s,%s,%s,%s,%s\n",
 				v.CaseID,
 				v.OccurredAt,
@@ -331,8 +360,8 @@ func main() {
 			)
 		}
 
-		// 5. Trả luồng dữ liệu thô về cho trình duyệt của người dùng tự động tải xuống
+		// 5. Tráº£ luá»“ng dá»¯ liá»‡u thÃ´ vá» cho trÃ¬nh duyá»‡t cá»§a ngÆ°á»i dÃ¹ng tá»± Ä‘á»™ng táº£i xuá»‘ng
 		c.String(http.StatusOK, csvContent)
 	})
-	r.Run(":8080")
+	r.Run("localhost:8080")
 }

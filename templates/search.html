@@ -15,7 +15,9 @@
             {{ if .LoggedIn }}
             <div class="d-flex align-items-center text-white">
                 <span class="me-3"><i class="fa-solid : user-shield me-1"></i> {{ .FullName }}</span>
-                <span class="badge bg-danger me-3">{{ if eq .Role "admin" }}TRƯỞNG ĐỒN (SẾP){{ else }}CHIẾN SĨ{{ end }}</span>
+                <span class="badge bg-danger me-3">
+                    {{ if eq .Role "chief" }}TRƯỞNG ĐỒN{{ else if eq .Role "deputy" }}PHÓ ĐỒN{{ else }}CHIẾN SĨ{{ end }}
+                </span>
                 <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid : sign-out-alt"></i> Đăng xuất</a>
             </div>
             {{ end }}

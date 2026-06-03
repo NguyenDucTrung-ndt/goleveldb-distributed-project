@@ -23,7 +23,9 @@
             {{ if .LoggedIn }}
             <div class="d-flex align-items-center text-white">
                 <span class="me-3"><i class="fa-solid : user-shield me-1"></i> {{ .FullName }}</span>
-                <span class="badge bg-danger me-3">{{ if eq .Role "admin" }}TRƯỞNG ĐỒN (SẾP){{ else }}CHIẾN SĨ{{ end }}</span>
+                <span class="badge bg-danger me-3">
+                    {{ if eq .Role "chief" }}TRƯỞNG ĐỒN{{ else if eq .Role "deputy" }}PHÓ ĐỒN{{ else }}CHIẾN SĨ{{ end }}
+                </span>
                 <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid : sign-out-alt"></i> Đăng xuất</a>
             </div>
             {{ end }}
@@ -73,12 +75,16 @@
                         <button class="nav-link active text-start mb-2" id="nav-dashboard-tab" data-bs-toggle="pill" data-bs-target="#nav-dashboard" type="button" role="tab"><i class="fa-solid : chart-line me-2"></i>Tóm tắt vụ án & Hạ tầng</button>
                         <button class="nav-link text-start mb-2" id="nav-search-tab" data-bs-toggle="pill" data-bs-target="#nav-search" type="button" role="tab"><i class="fa-solid : filter me-2"></i>Bộ lọc tìm kiếm nâng cao</button>
                         
-                        {{ if eq .Role "admin" }}
+                        {{ if .CanAddCase }}
                         <button class="nav-link text-start mb-2" id="nav-add-tab" data-bs-toggle="pill" data-bs-target="#nav-add" type="button" role="tab"><i class="fa-solid : folder-plus me-2"></i>Tiếp nhận hồ sơ mới</button>
+                        {{ else }}
+                        <button class="nav-link text-start mb-2 text-muted" disabled><i class="fa-solid : lock me-2"></i>Tiếp nhận hồ sơ (Cấp chỉ huy khóa)</button>
+                        {{ end }}
+
+                        {{ if .CanManageUsers }}
                         <button class="nav-link text-start" id="nav-users-tab" data-bs-toggle="pill" data-bs-target="#nav-users" type="button" role="tab"><i class="fa-solid : users-gear me-2"></i>Quản lý nhân viên cục bộ</button>
                         {{ else }}
-                        <button class="nav-link text-start mb-2 text-muted" disabled><i class="fa-solid : lock me-2"></i>Tiếp nhận hồ sơ (Sếp khóa)</button>
-                        <button class="nav-link text-start text-muted" disabled><i class="fa-solid : lock me-2"></i>Quản lý nhân viên (Sếp khóa)</button>
+                        <button class="nav-link text-start text-muted" disabled><i class="fa-solid : lock me-2"></i>Quản lý nhân viên (Trưởng đồn khóa)</button>
                         {{ end }}
                     </div>
                 </div>
@@ -280,8 +286,8 @@
                     <div class="tab-pane fade" id="nav-add" role="tabpanel" aria-labelledby="nav-add-tab">
                         <div class="card shadow-sm p-4">
                             <h4 class="card-title text-success mb-3"><i class="fa-solid : folder-plus me-2"></i>TIẾP NHẬN HỒ SƠ VỤ ÁN CHI TIẾT</h4>
-                            {{ if ne .Role "admin" }}
-                            <div class="alert alert-warning text-center"><i class="fa-solid : lock me-2"></i>Tài khoản của bạn bị Sếp khóa chức năng Ghi dữ liệu phân tán.</div>
+                            {{ if not .CanAddCase }}
+                            <div class="alert alert-warning text-center"><i class="fa-solid : lock me-2"></i>Tài khoản của bạn không có quyền ghi dữ liệu phân tán.</div>
                             {{ else }}
                             <form action="/add" method="POST" class="row g-3">
                                 <div class="col-md-4">
@@ -324,11 +330,11 @@
                         <div class="card shadow-sm p-4">
                             <h4 class="card-title text-dark mb-4"><i class="fa-solid : users me-2"></i>DANH SÁCH CÁN BỘ TRỰC THUỘC PHÂN KHU</h4>
                             
-                            {{ if ne .Role "admin" }}
-                            <div class="alert alert-danger text-center"><i class="fa-solid : shield-cat me-2"></i>Chỉ Chỉ huy trưởng (Sếp) mới có quyền truy cập dữ liệu nhân sự!</div>
+                            {{ if not .CanManageUsers }}
+                            <div class="alert alert-danger text-center"><i class="fa-solid : shield-cat me-2"></i>Chỉ Trưởng đồn mới có quyền truy cập dữ liệu nhân sự!</div>
                             {{ else }}
                             
-                            <h5 class="text-danger mb-2"><i class="fa-solid : user-gear me-2"></i>1. Ban Chỉ Huy & Cấp Cao (Admin)</h5>
+                            <h5 class="text-danger mb-2"><i class="fa-solid : user-gear me-2"></i>1. Trưởng đồn</h5>
                             <div class="table-responsive mb-4">
                                 <table class="table table-hover border align-middle">
                                     <thead class="table-dark">
@@ -341,11 +347,11 @@
                                     </thead>
                                     <tbody>
                                         {{ range $username, $info := .UserList }}
-                                            {{ if eq $info.Role "admin" }}
+                                            {{ if eq $info.Role "chief" }}
                                             <tr>
                                                 <td><code>{{ $username }}</code></td>
                                                 <td><strong>{{ $info.FullName }}</strong></td>
-                                                <td><span class="badge bg-danger">Chỉ Huy Cấp Cao (Admin)</span></td>
+                                                <td><span class="badge bg-danger">Trưởng đồn</span></td>
                                                 <td><span class="badge bg-success-subtle text-success border border-success">Đang hoạt động</span></td>
                                             </tr>
                                             {{ end }}
@@ -356,7 +362,35 @@
 
                             <hr class="my-4">
 
-                            <h5 class="text-primary mb-2"><i class="fa-solid : user-secret me-2"></i>2. Lực Lượng Trinh Sát & Chuyên Viên (Viewer)</h5>
+                            <h5 class="text-warning mb-2"><i class="fa-solid : user-shield me-2"></i>2. Phó đồn</h5>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-hover border align-middle">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th style="width: 20%">Tài khoản</th>
+                                            <th style="width: 45%">Họ tên cán bộ</th>
+                                            <th style="width: 20%">Vai trò hệ thống</th>
+                                            <th style="width: 15%">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{ range $username, $info := .UserList }}
+                                            {{ if eq $info.Role "deputy" }}
+                                            <tr>
+                                                <td><code>{{ $username }}</code></td>
+                                                <td><strong>{{ $info.FullName }}</strong></td>
+                                                <td><span class="badge bg-warning text-dark">Phó đồn</span></td>
+                                                <td><span class="badge bg-success-subtle text-success border border-success">Đang hoạt động</span></td>
+                                            </tr>
+                                            {{ end }}
+                                        {{ end }}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <h5 class="text-primary mb-2"><i class="fa-solid : user-secret me-2"></i>3. Lực Lượng Trinh Sát & Chuyên Viên (Viewer)</h5>
                             <div class="table-responsive">
                                 <table class="table table-hover border align-middle">
                                     <thead class="table-secondary">
