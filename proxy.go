@@ -161,8 +161,8 @@ func loadCasesFromFile() {
 func main() {
 	loadCasesFromFile()
 	ring := NewPoliceHashRing(10)
-	ring.AddStation("127.0.0.1:50051")
-	ring.AddStation("127.0.0.1:50052")
+	ring.AddStation("127.0.0.1:50051") // Đồn 1
+	ring.AddStation("127.0.0.1:50052") // Đồn 2
 	r := gin.Default()
 	_ = r.SetTrustedProxies(nil)
 	r.LoadHTMLGlob("templates/*")
@@ -330,6 +330,76 @@ func main() {
 			"StartTime":      c.Query("start_time"),
 			"EndTime":        c.Query("end_time"),
 			"SearchTitle":    c.Query("search_title"),
+		})
+	})
+
+	// =========================================================================
+	// SỬA LỖI 404 VÀ THỰC HIỆN PHÂN QUYỀN TRUY CẬP TỪNG ĐỒN (DYNAMIC ROUTING)
+	// =========================================================================
+	r.GET("/node/:port", func(c *gin.Context) {
+		// 1. KIỂM TRA ĐĂNG NHẬP VÀ PHÂN QUYỀN (Chỉ cho Chief và Deputy vào)
+		if !isLoggedIn || (currentRole != roleChief && currentRole != roleDeputy) {
+			c.HTML(http.StatusForbidden, "index.html", gin.H{
+				"LoggedIn": isLoggedIn,
+				"Role":     currentRole,
+				"FullName": currentFullName,
+				"Error":    "🚨 TRUY CẬP BỊ TỪ CHỐI: Chỉ cấp chỉ huy (Trưởng đồn/Phó đồn) mới có quyền truy cập trực tiếp đồn!",
+			})
+			return
+		}
+
+		// 2. LẤY THÔNG SỐ CỔNG (PORT) TỪ ĐƯỜNG DẪN URL
+		port := c.Param("port")
+
+		// Xác định thông tin của Node dựa trên Port để hiển thị động lên giao diện
+		stationName := "ĐỒN AN NINH TRUNG TÂM"
+		mainAddr := "127.0.0.1:" + port
+		backupAddr := "N/A (Chưa cấu hình Node dự phòng)"
+		currentStationIdx := "1"
+
+		if port == "50051" || port == "50053" {
+			stationName = "ĐỒN CẢNH SÁT SỐ 1 - KHU VỰC NỘI THÀNH"
+			mainAddr = "127.0.0.1:50051"
+			backupAddr = "127.0.0.1:50053"
+			currentStationIdx = "1"
+		} else if port == "50052" || port == "50054" {
+			stationName = "ĐỒN CẢNH SÁT SỐ 2 - KHU VỰC NGOẠI Ô"
+			mainAddr = "127.0.0.1:50052"
+			backupAddr = "127.0.0.1:50054"
+			currentStationIdx = "2"
+		}
+
+		// 3. LỌC DỮ LIỆU THỰC TẾ TRÊN HASH RING THUỘC VỀ ĐỒN NÀY
+		searchTitle := strings.ToLower(strings.TrimSpace(c.Query("search_title")))
+		var stationCases []CaseSummary
+
+		for _, v := range globalCases {
+			assignedStation := ring.RouteCase(v.CaseID)
+			// Nếu vụ án được định tuyến chính xác vào Main Node tương ứng
+			if assignedStation == mainAddr {
+				if searchTitle == "" || strings.Contains(strings.ToLower(v.Title), searchTitle) || strings.Contains(strings.ToLower(v.Suspect), searchTitle) {
+					stationCases = append(stationCases, v)
+				}
+			}
+		}
+
+		// 4. KIỂM TRA TRẠNG THÁI VẬT LÝ THỜI GIAN THỰC
+		status := checkNodeStatus(mainAddr)
+		statusRep := checkNodeStatus(backupAddr)
+
+		// 5. TRẢ VỀ TRANG CHI TIẾT ĐỒN MẠNG KHÔNG BỊ LỖI 404
+		c.HTML(http.StatusOK, "station_detail.html", gin.H{
+			"LoggedIn":       isLoggedIn,
+			"Role":           currentRole,
+			"FullName":       currentFullName,
+			"StationName":    stationName + " (Cổng mạng: " + port + ")",
+			"MainAddr":       mainAddr,
+			"BackupAddr":     backupAddr,
+			"Status":         status,
+			"StatusRep":      statusRep,
+			"RecentCases":    stationCases,
+			"SearchTitle":    c.Query("search_title"),
+			"CurrentStation": currentStationIdx,
 		})
 	})
 

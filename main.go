@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	pb "goleveldb-demo/storage" // Đảm bảo đường dẫn gói proto này chính xác
 
@@ -18,7 +20,7 @@ type server struct {
 	db *leveldb.DB
 }
 
-// Hàm xử lý Ghi dữ liệu (Put) - Khớp chính xác với cấu trúc định nghĩa
+// Hàm xử lý Ghi dữ liệu (Put)
 func (s *server) PutCase(ctx context.Context, req *pb.CaseRequest) (*pb.CaseResponse, error) {
 	err := s.db.Put([]byte(req.CaseId), []byte(req.CaseDataJson), nil)
 	if err != nil {
@@ -28,7 +30,7 @@ func (s *server) PutCase(ctx context.Context, req *pb.CaseRequest) (*pb.CaseResp
 	return &pb.CaseResponse{Success: true, Message: "Dữ liệu đã được lưu trữ an toàn."}, nil
 }
 
-// Hàm xử lý Đọc dữ liệu (Get) - Sửa lỗi truyền tham số và trả về đúng kiểu con trỏ
+// Hàm xử lý Đọc dữ liệu (Get)
 func (s *server) GetCase(ctx context.Context, req *pb.CaseRequest) (*pb.CaseResponse, error) {
 	data, err := s.db.Get([]byte(req.CaseId), nil)
 	if err != nil {
@@ -53,21 +55,31 @@ func main() {
 	fmt.Printf("💾 Đang khởi tạo cơ sở dữ liệu LevelDB tại thư mục: %s...\n", *dbPath)
 	db, err := leveldb.OpenFile(*dbPath, nil)
 	if err != nil {
-		fmt.Printf("🚨 Lỗi nghiêm trọng: Không thể mở đĩa LevelDB tại %s. Chi tiết: %v\n", *dbPath, err)
+		fmt.Printf("🚨 Lỗi nghiêm trọng: Không thể mở đĩa LevelDB tại %s. Có thể tiến trình khác đang chiếm giữ đĩa này! Chi tiết: %v\n", *dbPath, err)
 		os.Exit(1)
 	}
-	defer db.Close()
+
+	// Tối ưu: Đóng DB an toàn kể cả khi bấm Ctrl+C đột ngột tránh hỏng file dữ liệu
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("\n🛑 Đang đóng cơ sở dữ liệu GoLevelDB an toàn...")
+		db.Close()
+		os.Exit(0)
+	}()
 
 	lis, err := net.Listen("tcp", ":"+*port)
 	if err != nil {
-		fmt.Printf("🚨 Lỗi: Cổng %s đã bị chiếm dụng! %v\n", *port, err)
+		fmt.Printf("🚨 Lỗi: Cổng mạng %s đã bị chiếm dụng! Vui lòng kiểm tra lại cấu hình phân bổ cổng. %v\n", *port, err)
+		db.Close()
 		os.Exit(1)
 	}
 
 	s := grpc.NewServer()
 	pb.RegisterPoliceStorageServiceServer(s, &server{db: db})
 
-	fmt.Printf("🚀 ĐỒN AN NINH PHÂN TÁN ĐANG CHẠY TẠI CỔNG: localhost:%s\n", *port)
+	fmt.Printf("🚀 ĐỒN AN NINH PHÂN TÁN ĐANG CHẠY TẠI CỔNG gRPC: localhost:%s\n", *port)
 	if err := s.Serve(lis); err != nil {
 		fmt.Printf("🚨 Lỗi khởi chạy gRPC: %v\n", err)
 	}

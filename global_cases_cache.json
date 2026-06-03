@@ -9,6 +9,15 @@
     "evidence_list": "01 Cây dao bấm kim loại màu đen có dính vết máu; 01 Xe máy tháo biển số."
   },
   {
+    "case_id": "VA_2026_HN001",
+    "occurred_at": "2025-02-11 17:02",
+    "title": "buôn lậu",
+    "suspect": "abc",
+    "description": "a",
+    "autopsy_report": "a",
+    "evidence_list": "a"
+  },
+  {
     "case_id": "VA_2026_BN001",
     "occurred_at": "2024-06-15 15:05",
     "title": "Buôn ma túy",
@@ -16,6 +25,15 @@
     "description": "đi cùng đồng bọn lên núi tây bắc biên giới trung quốc buôn matuy",
     "autopsy_report": "",
     "evidence_list": "đèn pin, balo"
+  },
+  {
+    "case_id": "VA_2026_BG001",
+    "occurred_at": "2017-09-24 15:01",
+    "title": "Buôn ma túy",
+    "suspect": "Đỗ Duy Nhật Hoàng",
+    "description": "a",
+    "autopsy_report": "a",
+    "evidence_list": "a"
   },
   {
     "case_id": "VA_2026_DN001",
@@ -36,10 +54,19 @@
     "evidence_list": "gậy"
   },
   {
-    "case_id": "VA_2026_BG001",
-    "occurred_at": "2017-09-24 15:01",
-    "title": "Buôn ma túy",
-    "suspect": "Đỗ Duy Nhật Hoàng",
+    "case_id": "VA_2026_HN001",
+    "occurred_at": "2001-03-12 00:34",
+    "title": "a",
+    "suspect": "a",
+    "description": "a",
+    "autopsy_report": "a",
+    "evidence_list": "a"
+  },
+  {
+    "case_id": "VA_2026_HN001",
+    "occurred_at": "2000-11-11 11:11",
+    "title": "a",
+    "suspect": "a",
     "description": "a",
     "autopsy_report": "a",
     "evidence_list": "a"
