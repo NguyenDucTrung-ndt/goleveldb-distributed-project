@@ -21,13 +21,13 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Cấu trúc dữ liệu truyền nhận
 type CaseRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	CaseId             string                 `protobuf:"bytes,1,opt,name=case_id,json=caseId,proto3" json:"case_id,omitempty"`                                        // Mã vụ án (Key) - Ví dụ: VA_2026_001
-	CaseDataJson       string                 `protobuf:"bytes,2,opt,name=case_data_json,json=caseDataJson,proto3" json:"case_data_json,omitempty"`                    // Toàn bộ thông tin vụ án dạng JSON (Value)
-	IsReplicationRoute bool                   `protobuf:"varint,3,opt,name=is_replication_route,json=isReplicationRoute,proto3" json:"is_replication_route,omitempty"` // Cờ đánh dấu luồng đồng bộ giữa các đồn
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CaseId        string                 `protobuf:"bytes,1,opt,name=case_id,json=caseId,proto3" json:"case_id,omitempty"`
+	CaseDataJson  string                 `protobuf:"bytes,2,opt,name=case_data_json,json=caseDataJson,proto3" json:"case_data_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CaseRequest) Reset() {
@@ -74,132 +74,30 @@ func (x *CaseRequest) GetCaseDataJson() string {
 	return ""
 }
 
-func (x *CaseRequest) GetIsReplicationRoute() bool {
-	if x != nil {
-		return x.IsReplicationRoute
-	}
-	return false
-}
-
-type GetCaseRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CaseId        string                 `protobuf:"bytes,1,opt,name=case_id,json=caseId,proto3" json:"case_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetCaseRequest) Reset() {
-	*x = GetCaseRequest{}
-	mi := &file_storage_storage_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetCaseRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetCaseRequest) ProtoMessage() {}
-
-func (x *GetCaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_storage_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetCaseRequest.ProtoReflect.Descriptor instead.
-func (*GetCaseRequest) Descriptor() ([]byte, []int) {
-	return file_storage_storage_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *GetCaseRequest) GetCaseId() string {
-	if x != nil {
-		return x.CaseId
-	}
-	return ""
-}
-
-type GetCaseResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CaseDataJson  string                 `protobuf:"bytes,1,opt,name=case_data_json,json=caseDataJson,proto3" json:"case_data_json,omitempty"`
-	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetCaseResponse) Reset() {
-	*x = GetCaseResponse{}
-	mi := &file_storage_storage_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetCaseResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetCaseResponse) ProtoMessage() {}
-
-func (x *GetCaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_storage_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetCaseResponse.ProtoReflect.Descriptor instead.
-func (*GetCaseResponse) Descriptor() ([]byte, []int) {
-	return file_storage_storage_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *GetCaseResponse) GetCaseDataJson() string {
-	if x != nil {
-		return x.CaseDataJson
-	}
-	return ""
-}
-
-func (x *GetCaseResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type Response struct {
+type CaseResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	CaseDataJson  string                 `protobuf:"bytes,3,opt,name=case_data_json,json=caseDataJson,proto3" json:"case_data_json,omitempty"` // Chứa dữ liệu trả về khi gọi hàm Get
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Response) Reset() {
-	*x = Response{}
-	mi := &file_storage_storage_proto_msgTypes[3]
+func (x *CaseResponse) Reset() {
+	*x = CaseResponse{}
+	mi := &file_storage_storage_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Response) String() string {
+func (x *CaseResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Response) ProtoMessage() {}
+func (*CaseResponse) ProtoMessage() {}
 
-func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_storage_storage_proto_msgTypes[3]
+func (x *CaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_storage_storage_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -210,21 +108,28 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Response.ProtoReflect.Descriptor instead.
-func (*Response) Descriptor() ([]byte, []int) {
-	return file_storage_storage_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use CaseResponse.ProtoReflect.Descriptor instead.
+func (*CaseResponse) Descriptor() ([]byte, []int) {
+	return file_storage_storage_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Response) GetSuccess() bool {
+func (x *CaseResponse) GetSuccess() bool {
 	if x != nil {
 		return x.Success
 	}
 	return false
 }
 
-func (x *Response) GetMessage() string {
+func (x *CaseResponse) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *CaseResponse) GetCaseDataJson() string {
+	if x != nil {
+		return x.CaseDataJson
 	}
 	return ""
 }
@@ -233,22 +138,17 @@ var File_storage_storage_proto protoreflect.FileDescriptor
 
 const file_storage_storage_proto_rawDesc = "" +
 	"\n" +
-	"\x15storage/storage.proto\x12\astorage\"~\n" +
+	"\x15storage/storage.proto\x12\astorage\"L\n" +
 	"\vCaseRequest\x12\x17\n" +
 	"\acase_id\x18\x01 \x01(\tR\x06caseId\x12$\n" +
-	"\x0ecase_data_json\x18\x02 \x01(\tR\fcaseDataJson\x120\n" +
-	"\x14is_replication_route\x18\x03 \x01(\bR\x12isReplicationRoute\")\n" +
-	"\x0eGetCaseRequest\x12\x17\n" +
-	"\acase_id\x18\x01 \x01(\tR\x06caseId\"Q\n" +
-	"\x0fGetCaseResponse\x12$\n" +
-	"\x0ecase_data_json\x18\x01 \x01(\tR\fcaseDataJson\x12\x18\n" +
-	"\asuccess\x18\x02 \x01(\bR\asuccess\">\n" +
-	"\bResponse\x12\x18\n" +
+	"\x0ecase_data_json\x18\x02 \x01(\tR\fcaseDataJson\"h\n" +
+	"\fCaseResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\x88\x01\n" +
-	"\x14PoliceStorageService\x122\n" +
-	"\aPutCase\x12\x14.storage.CaseRequest\x1a\x11.storage.Response\x12<\n" +
-	"\aGetCase\x12\x17.storage.GetCaseRequest\x1a\x18.storage.GetCaseResponseB\vZ\t./storageb\x06proto3"
+	"\amessage\x18\x02 \x01(\tR\amessage\x12$\n" +
+	"\x0ecase_data_json\x18\x03 \x01(\tR\fcaseDataJson2\x86\x01\n" +
+	"\x14PoliceStorageService\x126\n" +
+	"\aPutCase\x12\x14.storage.CaseRequest\x1a\x15.storage.CaseResponse\x126\n" +
+	"\aGetCase\x12\x14.storage.CaseRequest\x1a\x15.storage.CaseResponseB\vZ\t./storageb\x06proto3"
 
 var (
 	file_storage_storage_proto_rawDescOnce sync.Once
@@ -262,18 +162,16 @@ func file_storage_storage_proto_rawDescGZIP() []byte {
 	return file_storage_storage_proto_rawDescData
 }
 
-var file_storage_storage_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_storage_storage_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_storage_storage_proto_goTypes = []any{
-	(*CaseRequest)(nil),     // 0: storage.CaseRequest
-	(*GetCaseRequest)(nil),  // 1: storage.GetCaseRequest
-	(*GetCaseResponse)(nil), // 2: storage.GetCaseResponse
-	(*Response)(nil),        // 3: storage.Response
+	(*CaseRequest)(nil),  // 0: storage.CaseRequest
+	(*CaseResponse)(nil), // 1: storage.CaseResponse
 }
 var file_storage_storage_proto_depIdxs = []int32{
 	0, // 0: storage.PoliceStorageService.PutCase:input_type -> storage.CaseRequest
-	1, // 1: storage.PoliceStorageService.GetCase:input_type -> storage.GetCaseRequest
-	3, // 2: storage.PoliceStorageService.PutCase:output_type -> storage.Response
-	2, // 3: storage.PoliceStorageService.GetCase:output_type -> storage.GetCaseResponse
+	0, // 1: storage.PoliceStorageService.GetCase:input_type -> storage.CaseRequest
+	1, // 2: storage.PoliceStorageService.PutCase:output_type -> storage.CaseResponse
+	1, // 3: storage.PoliceStorageService.GetCase:output_type -> storage.CaseResponse
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -292,7 +190,7 @@ func file_storage_storage_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_storage_storage_proto_rawDesc), len(file_storage_storage_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

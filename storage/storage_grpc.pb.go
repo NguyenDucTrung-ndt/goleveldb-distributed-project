@@ -26,11 +26,11 @@ const (
 // PoliceStorageServiceClient is the client API for PoliceStorageService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Dịch vụ lưu trữ gRPC liên thông
 type PoliceStorageServiceClient interface {
-	// Hàm ghi/đồng bộ hồ sơ vụ án
-	PutCase(ctx context.Context, in *CaseRequest, opts ...grpc.CallOption) (*Response, error)
-	// Hàm truy xuất hồ sơ vụ án
-	GetCase(ctx context.Context, in *GetCaseRequest, opts ...grpc.CallOption) (*GetCaseResponse, error)
+	PutCase(ctx context.Context, in *CaseRequest, opts ...grpc.CallOption) (*CaseResponse, error)
+	GetCase(ctx context.Context, in *CaseRequest, opts ...grpc.CallOption) (*CaseResponse, error)
 }
 
 type policeStorageServiceClient struct {
@@ -41,9 +41,9 @@ func NewPoliceStorageServiceClient(cc grpc.ClientConnInterface) PoliceStorageSer
 	return &policeStorageServiceClient{cc}
 }
 
-func (c *policeStorageServiceClient) PutCase(ctx context.Context, in *CaseRequest, opts ...grpc.CallOption) (*Response, error) {
+func (c *policeStorageServiceClient) PutCase(ctx context.Context, in *CaseRequest, opts ...grpc.CallOption) (*CaseResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Response)
+	out := new(CaseResponse)
 	err := c.cc.Invoke(ctx, PoliceStorageService_PutCase_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -51,9 +51,9 @@ func (c *policeStorageServiceClient) PutCase(ctx context.Context, in *CaseReques
 	return out, nil
 }
 
-func (c *policeStorageServiceClient) GetCase(ctx context.Context, in *GetCaseRequest, opts ...grpc.CallOption) (*GetCaseResponse, error) {
+func (c *policeStorageServiceClient) GetCase(ctx context.Context, in *CaseRequest, opts ...grpc.CallOption) (*CaseResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetCaseResponse)
+	out := new(CaseResponse)
 	err := c.cc.Invoke(ctx, PoliceStorageService_GetCase_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -64,11 +64,11 @@ func (c *policeStorageServiceClient) GetCase(ctx context.Context, in *GetCaseReq
 // PoliceStorageServiceServer is the server API for PoliceStorageService service.
 // All implementations must embed UnimplementedPoliceStorageServiceServer
 // for forward compatibility.
+//
+// Dịch vụ lưu trữ gRPC liên thông
 type PoliceStorageServiceServer interface {
-	// Hàm ghi/đồng bộ hồ sơ vụ án
-	PutCase(context.Context, *CaseRequest) (*Response, error)
-	// Hàm truy xuất hồ sơ vụ án
-	GetCase(context.Context, *GetCaseRequest) (*GetCaseResponse, error)
+	PutCase(context.Context, *CaseRequest) (*CaseResponse, error)
+	GetCase(context.Context, *CaseRequest) (*CaseResponse, error)
 	mustEmbedUnimplementedPoliceStorageServiceServer()
 }
 
@@ -79,10 +79,10 @@ type PoliceStorageServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedPoliceStorageServiceServer struct{}
 
-func (UnimplementedPoliceStorageServiceServer) PutCase(context.Context, *CaseRequest) (*Response, error) {
+func (UnimplementedPoliceStorageServiceServer) PutCase(context.Context, *CaseRequest) (*CaseResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PutCase not implemented")
 }
-func (UnimplementedPoliceStorageServiceServer) GetCase(context.Context, *GetCaseRequest) (*GetCaseResponse, error) {
+func (UnimplementedPoliceStorageServiceServer) GetCase(context.Context, *CaseRequest) (*CaseResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetCase not implemented")
 }
 func (UnimplementedPoliceStorageServiceServer) mustEmbedUnimplementedPoliceStorageServiceServer() {}
@@ -125,7 +125,7 @@ func _PoliceStorageService_PutCase_Handler(srv interface{}, ctx context.Context,
 }
 
 func _PoliceStorageService_GetCase_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCaseRequest)
+	in := new(CaseRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func _PoliceStorageService_GetCase_Handler(srv interface{}, ctx context.Context,
 		FullMethod: PoliceStorageService_GetCase_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PoliceStorageServiceServer).GetCase(ctx, req.(*GetCaseRequest))
+		return srv.(PoliceStorageServiceServer).GetCase(ctx, req.(*CaseRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

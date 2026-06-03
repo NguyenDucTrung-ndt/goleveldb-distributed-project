@@ -1,30 +1,24 @@
 syntax = "proto3";
+
 package storage;
+
+// Định nghĩa package cho Go
 option go_package = "./storage";
 
+// Dịch vụ lưu trữ gRPC liên thông
 service PoliceStorageService {
-    // Hàm ghi/đồng bộ hồ sơ vụ án
-    rpc PutCase (CaseRequest) returns (Response);
-    // Hàm truy xuất hồ sơ vụ án
-    rpc GetCase (GetCaseRequest) returns (GetCaseResponse);
+    rpc PutCase (CaseRequest) returns (CaseResponse);
+    rpc GetCase (CaseRequest) returns (CaseResponse); // Đã đồng bộ dùng chung CaseRequest/Response cho gọn
 }
 
+// Cấu trúc dữ liệu truyền nhận
 message CaseRequest {
-    string case_id = 1;              // Mã vụ án (Key) - Ví dụ: VA_2026_001
-    string case_data_json = 2;       // Toàn bộ thông tin vụ án dạng JSON (Value)
-    bool is_replication_route = 3;  // Cờ đánh dấu luồng đồng bộ giữa các đồn
-}
-
-message GetCaseRequest {
     string case_id = 1;
+    string case_data_json = 2;
 }
 
-message GetCaseResponse {
-    string case_data_json = 1;
-    bool success = 2;
-}
-
-message Response {
+message CaseResponse {
     bool success = 1;
     string message = 2;
+    string case_data_json = 3; // Chứa dữ liệu trả về khi gọi hàm Get
 }
