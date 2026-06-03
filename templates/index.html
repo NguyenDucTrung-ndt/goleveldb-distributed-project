@@ -87,56 +87,62 @@
             <div class="col-md-9">
                 <div class="tab-content" id="v-pills-tabContent">
                     
-                    <div class="tab-pane fade show active" id="nav-dashboard" role="tabpanel">
+                    <div class="tab-pane fade show active" id="nav-dashboard" role="tabpanel" aria-labelledby="nav-dashboard-tab">
                         <div class="card shadow-sm p-4 mb-4 bg-dark text-white">
-    <h5><i class="fa-solid : server me-2 text-warning"></i>MẠNG LƯỚI ĐĨA CỨNG GOLEVELDB REPLICATION REAL-TIME</h5>
-    <p class="text-muted small">Hệ thống tự động ping kiểm tra kết nối gRPC vật lý tới các phân khu đồn an ninh.</p>
-    <div class="row text-center mt-3 text-dark">
-        <div class="col-md-3 mb-2">
-            <div class="bg-light p-2 rounded border">
-                <div class="fw-bold small">Đồn 1 Cốt lõi</div>
-                <code>50051</code>
-                <div class="mt-1">
-                    {{ if eq .Status1 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid : circle-check"></i> HOẠT ĐỘNG</span>
-                    {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> MẤT ĐIỆN (OFFLINE)</span>{{ end }}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <div class="bg-light p-2 rounded border">
-                <div class="fw-bold small">Đồn 1 Dự phòng</div>
-                <code>50053</code>
-                <div class="mt-1">
-                    {{ if eq .Status1Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid : shield"></i> HOẠT ĐỘNG</span>
-                    {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> MẤT ĐIỆN (OFFLINE)</span>{{ end }}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <div class="bg-light p-2 rounded border">
-                <div class="fw-bold small">Đồn 2 Cốt lõi</div>
-                <code>50052</code>
-                <div class="mt-1">
-                    {{ if eq .Status2 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid : circle-check"></i> HOẠT ĐỘNG</span>
-                    {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> MẤT ĐIỆN (OFFLINE)</span>{{ end }}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <div class="bg-light p-2 rounded border">
-                <div class="fw-bold small">Đồn 2 Dự phòng</div>
-                <code>50054</code>
-                <div class="mt-1">
-                    {{ if eq .Status2Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid : shield"></i> HOẠT ĐỘNG</span>
-                    {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> MẤT ĐIỆN (OFFLINE)</span>{{ end }}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                            <h5><i class="fa-solid : server me-2 text-warning"></i>MẠNG LƯỚI ĐĨA CỨNG GOLEVELDB REPLICATION REAL-TIME</h5>
+                            <p class="text-muted small">Hệ thống tự động ping kiểm tra kết nối gRPC vật lý tới các phân khu đồn an ninh.</p>
+                            <div class="row text-center mt-3 text-dark">
+                                <div class="col-md-3 mb-2">
+                                    <div class="bg-light p-2 rounded border">
+                                        <div class="fw-bold small">Đồn 1 Cốt lõi</div>
+                                        <code>50051</code>
+                                        <div class="mt-1">
+                                            {{ if eq .Status1 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid : circle-check"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="bg-light p-2 rounded border">
+                                        <div class="fw-bold small">Đồn 1 Dự phòng</div>
+                                        <code>50053</code>
+                                        <div class="mt-1">
+                                            {{ if eq .Status1Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid : shield"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="bg-light p-2 rounded border">
+                                        <div class="fw-bold small">Đồn 2 Cốt lõi</div>
+                                        <code>50052</code>
+                                        <div class="mt-1">
+                                            {{ if eq .Status2 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid : circle-check"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <div class="bg-light p-2 rounded border">
+                                        <div class="fw-bold small">Đồn 2 Dự phòng</div>
+                                        <code>50054</code>
+                                        <div class="mt-1">
+                                            {{ if eq .Status2Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid : shield"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> <div class="card shadow-sm p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="card-title text-dark mb-0">
+                                    <i class="fa-solid : list me-2"></i>HỒ SƠ NGHIỆP VỤ MỚI CẬP NHẬT
+                                </h4>
+                                <a href="/export" class="btn btn-success btn-sm shadow-sm px-3">
+                                    <i class="fa-solid : file-excel me-2"></i>Xuất Báo Cáo Toàn Bộ
+                                </a>
+                            </div>
 
-                        <div class="card shadow-sm p-4">
-                            <h4 class="card-title text-dark mb-3"><i class="fa-solid : list me-2"></i>HỒ SƠ NGHIỆP VỤ MỚI CẬP NHẬT</h4>
                             <div class="table-responsive">
                                 <table class="table table-hover border align-middle">
                                     <thead class="table-secondary">
@@ -174,19 +180,16 @@
                                                             <div class="col-md-6"><h6><strong>Tội danh:</strong> {{ .Title }}</h6></div>
                                                             <div class="col-md-6"><h6><strong>Nghi can chính:</strong> <span class="badge bg-danger">{{ .Suspect }}</span></h6></div>
                                                             <div class="col-md-12"><hr class="my-1"></div>
-                                                            
                                                             <div class="col-md-12">
                                                                 <label class="fw-bold text-primary"><i class="fa-solid : file-lines me-1"></i> 1. Mô tả chi tiết diễn biến vụ án:</label>
                                                                 <p class="p-3 bg-light rounded border text-muted" style="white-space: pre-wrap;">{{ .Description }}</p>
                                                             </div>
-                                                            
                                                             <div class="col-md-12">
-                                                                <label class="fw-bold text-danger"><i class="fa-solid : bone me-1"></i> 2. Biên bản khám nghiệm tử thi / Giám định thương tật:</label>
+                                                                <label class="fw-bold text-danger"><i class="fa-solid : bone me-1"></i> 2. Biên bản giám định:</label>
                                                                 <p class="p-3 bg-light rounded border text-muted" style="white-space: pre-wrap;">{{ .AutopsyReport }}</p>
                                                             </div>
-                                                            
                                                             <div class="col-md-12">
-                                                                <label class="fw-bold text-success"><i class="fa-solid : boxes-stacked me-1"></i> 3. Danh mục vật chứng thu giữ tại hiện trường:</label>
+                                                                <label class="fw-bold text-success"><i class="fa-solid : boxes-stacked me-1"></i> 3. Vật chứng thu giữ:</label>
                                                                 <p class="p-3 bg-light rounded border text-muted" style="white-space: pre-wrap;">{{ .EvidenceList }}</p>
                                                             </div>
                                                         </div>
@@ -206,7 +209,7 @@
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="nav-search" role="tabpanel">
+                    <div class="tab-pane fade" id="nav-search" role="tabpanel" aria-labelledby="nav-search-tab">
                         <div class="card shadow-sm p-4">
                             <h4 class="card-title text-dark mb-3"><i class="fa-solid : filter me-2"></i>HỆ THỐNG TRUY VẤN VÀ SÀNG LỌC ĐA ĐIỀU KIỆN</h4>
                             
@@ -230,41 +233,51 @@
                                 </div>
                             </form>
 
+                            <!-- Kết quả sàng lọc (Phần tìm kiếm nâng cao) -->
                             {{ if .HasSearched }}
-                            <div class="mt-3">
-                                <h5 class="text-primary"><i class="fa-solid : list-check me-2"></i>Kết quả sàng lọc:</h5>
-                                <div class="table-responsive mt-2">
-                                    <table class="table table-bordered table-striped align-middle small">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <th>Mã vụ án (Key)</th>
-                                                <th>Thời gian xảy ra</th>
-                                                <th>Tội danh</th>
-                                                <th>Nghi phạm</th>
-                                                <th>Chi tiết hồ sơ nhanh</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {{ range .FilterResults }}
-                                            <tr>
-                                                <td><code>{{ .CaseID }}</code></td>
-                                                <td>{{ .OccurredAt }}</td>
-                                                <td><strong>{{ .Title }}</strong></td>
-                                                <td>{{ .Suspect }}</td>
-                                                <td><small class="text-muted">Mô tả: {{ .Description }}</small></td>
-                                            </tr>
-                                            {{ else }}
-                                            <tr><td colspan="5" class="text-center text-muted py-3">🚨 Không tìm thấy vụ án nào khớp!</td></tr>
-                                            {{ end }}
-                                        </tbody>
-                                    </table>
+                            <div class="mt-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="text-dark fw-bold mb-0"><i class="fa-solid : list-check me-2"></i>Hồ sơ vụ án khớp điều kiện nghiệp vụ</h5>
+                                    <a href="/export-search?start_time={{ .StartTime }}&end_time={{ .EndTime }}&search_title={{ .SearchTitle }}" class="btn btn-outline-success btn-sm fw-bold">
+                                        <i class="fa-solid : download me-2"></i>Tải file báo cáo (.csv)
+                                    </a>
+                                </div>
+
+                                <div class="accordion" id="accordionSearchCases">
+                                    {{ range .FilterResults }}
+                                    <div class="accordion-item mb-2 border rounded shadow-sm">
+                                        <h2 class="accordion-header" id="search-heading-{{ .CaseID }}">
+                                            <button class="accordion-button collapsed bg-white py-3" type="button" data-bs-toggle="collapse" data-bs-target="#search-collapse-{{ .CaseID }}">
+                                                <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                                    <!-- Bên trái: Badge đỏ + Tên vụ án -->
+                                                    <div>
+                                                        <span class="badge bg-danger me-2 px-2 py-1.5">{{ .CaseID }}</span>
+                                                        <strong class="text-dark">{{ .Title }}</strong>
+                                                        <span class="badge bg-secondary ms-2 fw-normal">Nghi phạm: {{ .Suspect }}</span>
+                                                    </div>
+                                                    <!-- Bên phải: Cột ngày tháng hiển thị căn lề phải -->
+                                                    <div class="text-muted small fw-semibold">
+                                                        {{ .OccurredAt }}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        </h2>
+                                        <div id="search-collapse-{{ .CaseID }}" class="accordion-collapse collapse" data-bs-parent="#accordionSearchCases">
+                                            <div class="accordion-body bg-light border-top p-4 text-start">
+                                                <p class="mb-0 text-muted"><strong>Mô tả tóm tắt hành vi:</strong> {{ .Description }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {{ else }}
+                                    <div class="text-center text-muted py-4 border rounded bg-light">🚨 Không tìm thấy vụ án nào khớp!</div>
+                                    {{ end }}
                                 </div>
                             </div>
                             {{ end }}
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="nav-add" role="tabpanel">
+                    <div class="tab-pane fade" id="nav-add" role="tabpanel" aria-labelledby="nav-add-tab">
                         <div class="card shadow-sm p-4">
                             <h4 class="card-title text-success mb-3"><i class="fa-solid : folder-plus me-2"></i>TIẾP NHẬN HỒ SƠ VỤ ÁN CHI TIẾT</h4>
                             {{ if ne .Role "admin" }}
@@ -293,91 +306,86 @@
                                 </div>
                                 <div class="col-md-12">
                                     <label class="form-label fw-bold text-danger">2. Biên bản khám nghiệm tử thi / Giám định pháp y (Nếu có)</label>
-                                    <textarea name="autopsy_report" class="form-control" rows="3" placeholder="Ghi nhận trạng thái nạn nhân, nguyên nhân tử vong hoặc tỷ lệ thương tật..." default="Không có cấu thành hành vi tử vong."></textarea>
+                                    <textarea name="autopsy_report" class="form-control" rows="3" placeholder="Ghi nhận trạng thái nạn nhân..."></textarea>
                                 </div>
                                 <div class="col-md-12">
                                     <label class="form-label fw-bold text-success">3. Danh sách tang vật, vật chứng thu giữ</label>
-                                    <textarea name="evidence_list" class="form-control" rows="2" placeholder="Ví dụ: 01 Dao bấm hung khí, 01 Xe máy nhãn hiệu Honda..." required></textarea>
+                                    <textarea name="evidence_list" class="form-control" rows="2" placeholder="Ví dụ: 01 Dao bấm hung khí..." required></textarea>
                                 </div>
                                 <div class="col-md-12 text-end mt-4">
-                                    <button type="submit" class="btn btn-success btn-lg px-5"><i class="fa-solid : server me-2"></i>Băm định tuyến & Hạ đĩa cứng</button>
+                                    <button type="submit" class="btn btn-success btn-lg px-5"><i class="fa-solid : server me-2"></i>Tiếp nhận hồ sơ</button>
                                 </div>
                             </form>
                             {{ end }}
                         </div>
                     </div>
 
-                    <div class="tab-pane fade" id="nav-users" role="tabpanel">
-    <div class="card shadow-sm p-4">
-        <h4 class="card-title text-dark mb-4"><i class="fa-solid : users me-2"></i>DANH SÁCH CÁN BỘ TRỰC THUỘC PHÂN KHU</h4>
-        
-        {{ if ne .Role "admin" }}
-        <div class="alert alert-danger text-center"><i class="fa-solid : shield-cat me-2"></i>Chỉ Chỉ huy trưởng (Sếp) mới có quyền truy cập dữ liệu nhân sự!</div>
-        {{ else }}
-        
-        <h5 class="text-danger mb-2"><i class="fa-solid : user-gear me-2"></i>1. Ban Chỉ Huy & Cấp Cao (Admin)</h5>
-        <div class="table-responsive mb-4">
-            <table class="table table-hover border align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width: 20%">Tài khoản</th>
-                        <th style="width: 45%">Họ tên cán bộ</th>
-                        <th style="width: 20%">Vai trò hệ thống</th>
-                        <th style="width: 15%">Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{ range $username, $info := .UserList }}
-                        {{ if eq $info.Role "admin" }}
-                        <tr>
-                            <td><code>{{ $username }}</code></td>
-                            <td><strong>{{ $info.FullName }}</strong></td>
-                            <td><span class="badge bg-danger">Chỉ Huy Cấp Cao (Admin)</span></td>
-                            <td><span class="badge bg-success-subtle text-success border border-success">Đang hoạt động</span></td>
-                        </tr>
-                        {{ end }}
-                    {{ end }}
-                </tbody>
-            </table>
-        </div>
+                    <div class="tab-pane fade" id="nav-users" role="tabpanel" aria-labelledby="nav-users-tab">
+                        <div class="card shadow-sm p-4">
+                            <h4 class="card-title text-dark mb-4"><i class="fa-solid : users me-2"></i>DANH SÁCH CÁN BỘ TRỰC THUỘC PHÂN KHU</h4>
+                            
+                            {{ if ne .Role "admin" }}
+                            <div class="alert alert-danger text-center"><i class="fa-solid : shield-cat me-2"></i>Chỉ Chỉ huy trưởng (Sếp) mới có quyền truy cập dữ liệu nhân sự!</div>
+                            {{ else }}
+                            
+                            <h5 class="text-danger mb-2"><i class="fa-solid : user-gear me-2"></i>1. Ban Chỉ Huy & Cấp Cao (Admin)</h5>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-hover border align-middle">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th style="width: 20%">Tài khoản</th>
+                                            <th style="width: 45%">Họ tên cán bộ</th>
+                                            <th style="width: 20%">Vai trò hệ thống</th>
+                                            <th style="width: 15%">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{ range $username, $info := .UserList }}
+                                            {{ if eq $info.Role "admin" }}
+                                            <tr>
+                                                <td><code>{{ $username }}</code></td>
+                                                <td><strong>{{ $info.FullName }}</strong></td>
+                                                <td><span class="badge bg-danger">Chỉ Huy Cấp Cao (Admin)</span></td>
+                                                <td><span class="badge bg-success-subtle text-success border border-success">Đang hoạt động</span></td>
+                                            </tr>
+                                            {{ end }}
+                                        {{ end }}
+                                    </tbody>
+                                </table>
+                            </div>
 
-        <hr class="my-4">
+                            <hr class="my-4">
 
-        <h5 class="text-primary mb-2"><i class="fa-solid : user-secret me-2"></i>2. Lực Lượng Trinh Sát & Chuyên Viên (Viewer)</h5>
-        <div class="table-responsive">
-            <table class="table table-hover border align-middle">
-                <thead class="table-secondary">
-                    <tr>
-                        <th style="width: 20%">Tài khoản</th>
-                        <th style="width: 45%">Họ tên cán bộ</th>
-                        <th style="width: 20%">Vai trò hệ thống</th>
-                        <th style="width: 15%">Trạng thái</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{ range $username, $info := .UserList }}
-                        {{ if eq $info.Role "viewer" }}
-                        <tr>
-                            <td><code>{{ $username }}</code></td>
-                            <td><strong>{{ $info.FullName }}</strong></td>
-                            <td><span class="badge bg-secondary">Cán bộ Trinh sát (Viewer)</span></td>
-                            <td><span class="badge bg-success-subtle text-success border border-success">Đang hoạt động</span></td>
-                        </tr>
-                        {{ end }}
-                    {{ end }}
-                </tbody>
-            </table>
-        </div>
-        
-        {{ end }}
-        </div>
-    </div>
-                </div>
-            </div>
-        </div>
-        {{ end }}
-    </div>
+                            <h5 class="text-primary mb-2"><i class="fa-solid : user-secret me-2"></i>2. Lực Lượng Trinh Sát & Chuyên Viên (Viewer)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover border align-middle">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th style="width: 20%">Tài khoản</th>
+                                            <th style="width: 45%">Họ tên cán bộ</th>
+                                            <th style="width: 20%">Vai trò hệ thống</th>
+                                            <th style="width: 15%">Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{ range $username, $info := .UserList }}
+                                            {{ if eq $info.Role "viewer" }}
+                                            <tr>
+                                                <td><code>{{ $username }}</code></td>
+                                                <td><strong>{{ $info.FullName }}</strong></td>
+                                                <td><span class="badge bg-secondary">Cán bộ Trinh sát (Viewer)</span></td>
+                                                <td><span class="badge bg-success-subtle text-success border border-success">Đang hoạt động</span></td>
+                                            </tr>
+                                            {{ end }}
+                                        {{ end }}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {{ end }}
+                        </div>
+                    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                </div> </div> </div> {{ end }}
+    </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

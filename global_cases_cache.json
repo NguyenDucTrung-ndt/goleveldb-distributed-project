@@ -1,0 +1,29 @@
+[
+  {
+    "case_id": "VA_2026_HN001",
+    "occurred_at": "2026-05-15 22:30",
+    "title": "Giết người cướp tài sản công vụ",
+    "suspect": "Nguyễn Văn Hoành",
+    "description": "Đối tượng Hoành đột nhập vào trạm gác lúc nửa đêm, dùng hung khí tấn công chiến sĩ trực ban từ phía sau nhằm lấy đi tài liệu tối mật.",
+    "autopsy_report": "Nạn nhân tử vong do mất máu cấp. Vết thương chí mạng sâu 5cm ở vùng gáy do vật sắc nhọn gây ra.",
+    "evidence_list": "01 Cây dao bấm kim loại màu đen có dính vết máu; 01 Xe máy tháo biển số."
+  },
+  {
+    "case_id": "VA_2026_DN001",
+    "occurred_at": "2011-11-11 23:11",
+    "title": "Giết người cướp của",
+    "suspect": "Lưu Đức Hiệp",
+    "description": "ac",
+    "autopsy_report": "awsc",
+    "evidence_list": "ădawd"
+  },
+  {
+    "case_id": "VA_2026_LS001",
+    "occurred_at": "2005-11-11 12:34",
+    "title": "Trộm cắp tài sản",
+    "suspect": "Hà Nguyễn Trúc Linh",
+    "description": "đột nhập đêm khuya",
+    "autopsy_report": "bị trấn thương não nhẹ",
+    "evidence_list": "gậy"
+  }
+]

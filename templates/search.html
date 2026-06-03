@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trung Tâm Điều Hành - Kết Quả Sàng Lọc Nghiệp Vụ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fa-solid : shield-halved me-2"></i><b>POLICE DISTRIBUTED DB v6.0</b></a>
+            {{ if .LoggedIn }}
+            <div class="d-flex align-items-center text-white">
+                <span class="me-3"><i class="fa-solid : user-shield me-1"></i> {{ .FullName }}</span>
+                <span class="badge bg-danger me-3">{{ if eq .Role "admin" }}TRƯỞNG ĐỒN (SẾP){{ else }}CHIẾN SĨ{{ end }}</span>
+                <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid : sign-out-alt"></i> Đăng xuất</a>
+            </div>
+            {{ end }}
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card shadow-sm p-4 mb-4 bg-white border-start border-4 border-dark">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="text-dark mb-1"><i class="fa-solid : magnified-glass-chart me-2 text-secondary"></i>KẾT QUẢ TRUY VẤN VÀ SÀNG LỌC ĐA ĐIỀU KIỆN</h4>
+                    <p class="text-muted small mb-0">Hệ thống trích xuất thời gian thực dữ liệu từ các phân khu đĩa cứng GoLevelDB.</p>
+                </div>
+                <span class="badge bg-dark p-2 fs-6">{{ .SuccessMsg }}</span>
+            </div>
+        </div>
+
+        <div class="card shadow-sm p-4">
+            <h5 class="text-dark mb-3"><i class="fa-solid : folder-open me-2 text-warning"></i>Hồ sơ vụ án khớp điều kiện nghiệp vụ</h5>
+            
+            {{ if not .RecentCases }}
+            <div class="alert alert-warning text-center my-4 py-4">
+                <i class="fa-solid : folder-minus fs-1 d-block mb-2 text-muted"></i>
+                Không tìm thấy hồ sơ hoặc dữ liệu tội danh nào khớp với từ khóa/thời gian đã chọn!
+            </div>
+            {{ else }}
+            <div class="accordion shadow-sm" id="accordionSearchCases">
+                {{ range $index, $case := .RecentCases }}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingSearch{{ $index }}">
+                        <button class="accordion-button collapsed fw-bold text-dark bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSearch{{ $index }}">
+                            <span class="badge bg-danger me-2">{{ $case.CaseID }}</span> 
+                            {{ $case.Title }} 
+                            <span class="ms-auto text-muted small fw-normal"><i class="fa-regular : clock me-1"></i>{{ $case.OccurredAt }}</span>
+                        </button>
+                    </h2>
+                    <div id="collapseSearch{{ $index }}" class="accordion-collapse collapse" data-bs-parent="#accordionSearchCases">
+                        <div class="accordion-body bg-white text-dark">
+                            <p><strong><i class="fa-solid : user-secret me-2 text-danger"></i>Đối tượng nghi vấn:</strong> <span class="text-danger fw-bold">{{ $case.Suspect }}</span></p>
+                            <hr>
+                            <p><strong><i class="fa-solid : file-lines me-2 text-secondary"></i>Tóm tắt diễn biến hành vi:</strong></p>
+                            <div class="p-3 bg-light rounded border text-muted mb-3">{{ $case.Description }}</div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="fw-bold text-primary"><i class="fa-solid : stethoscope me-2"></i>Kết luận Biên bản Pháp y:</p>
+                                    <div class="p-2 border rounded bg-light small">{{ $case.AutopsyReport }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="fw-bold text-success"><i class="fa-solid : boxes-stacked me-2"></i>Danh mục Vật chứng tịch thu:</p>
+                                    <div class="p-2 border rounded bg-light small">{{ $case.EvidenceList }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+            {{ end }}
+            
+        
+            <div class="text-center mt-4">
+                <a href="/export" class="btn btn-success px-4 me-2">
+                    <i class="fa-solid : file-arrow-down me-2"></i>Tải file báo cáo (.csv)
+                </a>
+                <a href="/" class="btn btn-secondary px-4">
+                    <i class="fa-solid : arrow-left me-2"></i>Quay lại trang chủ
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

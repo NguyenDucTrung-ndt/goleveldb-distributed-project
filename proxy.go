@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	pb "goleveldb-demo/storage"
 	"hash/crc32"
+	"io/ioutil"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-
-	pb "goleveldb-demo/storage"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -64,7 +65,6 @@ func (h *PoliceHashRing) RouteCase(caseID string) string {
 	return h.ring[h.sortedHashes[idx]]
 }
 
-// Hàm kiểm tra trạng thái sống/chết (Health Check) của một cổng gRPC
 // HÀM KIỂM TRA TRẠNG THÁI THỰC TẾ (ĐÃ SỬA LỖI LAZY CONNECTION CỦA gRPC)
 func checkNodeStatus(addr string) string {
 	// Sử dụng grpc.WithBlock() để ép gRPC phải kết nối và bắt tay (Handshake) ngay lập tức
@@ -115,11 +115,24 @@ var currentRole = ""
 var currentFullName = ""
 var isLoggedIn = false
 
+// Hàm tự động lưu mảng vụ án xuống file json cục bộ để không bị mất khi tắt proxy
+func saveCasesToFile() {
+	data, _ := json.MarshalIndent(globalCases, "", "  ")
+	_ = ioutil.WriteFile("global_cases_cache.json", data, 0644)
+}
+
+// Hàm tự động nạp lại vụ án khi bật proxy lên
+func loadCasesFromFile() {
+	data, err := ioutil.ReadFile("global_cases_cache.json")
+	if err == nil {
+		_ = json.Unmarshal(data, &globalCases)
+	}
+}
 func main() {
+	loadCasesFromFile()
 	ring := NewPoliceHashRing(10)
 	ring.AddStation("localhost:50051")
 	ring.AddStation("localhost:50052")
-
 	r := gin.Default()
 	r.LoadHTMLGlob("templates/*")
 
@@ -127,7 +140,6 @@ func main() {
 		sort.Slice(globalCases, func(i, j int) bool { return globalCases[i].OccurredAt > globalCases[j].OccurredAt })
 		msg := c.Query("msg")
 
-		// Thực hiện quét trạng thái thực tế của cả 4 đồn ngay khi tải trang
 		status1 := checkNodeStatus("127.0.0.1:50051")
 		status1Rep := checkNodeStatus("127.0.0.1:50053")
 		status2 := checkNodeStatus("127.0.0.1:50052")
@@ -136,7 +148,6 @@ func main() {
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"LoggedIn": isLoggedIn, "Role": currentRole, "FullName": currentFullName,
 			"UserList": userDB, "RecentCases": globalCases, "SuccessMsg": msg,
-			// Truyền trạng thái quét thực tế sang HTML
 			"Status1": status1, "Status1Rep": status1Rep,
 			"Status2": status2, "Status2Rep": status2Rep,
 		})
@@ -186,29 +197,29 @@ func main() {
 			clientM := pb.NewPoliceStorageServiceClient(connM)
 			_, errPut := clientM.PutCase(context.Background(), &pb.CaseRequest{CaseId: caseID, CaseDataJson: caseDataJSON})
 			if errPut == nil {
-				msgLog += fmt.Sprintf("[Đồn Gốc %s: Đã lưu đĩa cứng] ", targetMaster)
+				msgLog += ""
 			} else {
-				msgLog += fmt.Sprintf("[Đồn Gốc %s: Lỗi ghi đĩa] ", targetMaster)
+				msgLog += ""
 			}
 		} else {
 			msgLog += fmt.Sprintf("[Đồn Gốc %s: MẤT ĐIỆN SẬP NGUỒN] ", targetMaster)
 		}
 
-		// Thử đồng bộ Replica dự phòng
+		// Thử đồng bộ Replica dự phòng (GIỮ NGUYÊN LOGIC ĐỂ HỆ THỐNG KHÔNG BỊ MẤT TÍNH NĂNG SAO LƯU)
 		connR, errR := grpc.Dial(targetReplica, grpc.WithInsecure(), grpc.WithTimeout(500*time.Millisecond))
 		if errR == nil {
 			defer connR.Close()
 			clientR := pb.NewPoliceStorageServiceClient(connR)
 			_, errRep := clientR.PutCase(context.Background(), &pb.CaseRequest{CaseId: caseID, CaseDataJson: caseDataJSON})
+
 			if errRep == nil {
-				msgLog += fmt.Sprintf("-> [Đồng bộ cứu hộ sang Đồn Dự phòng %s thành công!]", targetReplica)
+				msgLog += ""
 			} else {
-				msgLog += "-> [Đồn Dự phòng từ chối lệnh sao lưu]"
+				msgLog += ""
 			}
 		} else {
-			msgLog += "-> [Đồn Dự phòng cũng đã sập, mất liên lạc hoàn toàn]"
+			msgLog += ""
 		}
-
 		globalCases = append(globalCases, CaseSummary{
 			CaseID:        caseID,
 			OccurredAt:    occurredAt,
@@ -219,8 +230,109 @@ func main() {
 			EvidenceList:  evidenceList,
 		})
 
+		saveCasesToFile()
+
 		c.Redirect(http.StatusSeeOther, "/?msg="+msgLog)
 	})
+	// =========================================================================
+	// HÀM XỬ LÝ LỌC VÀ TRUY VẤN VỤ ÁN ĐA ĐIỀU KIỆN (ROUTE /search ĐỘC LẬP)
+	// =========================================================================
+	r.GET("/search", func(c *gin.Context) {
+		// 1. Lấy dữ liệu từ URL Query gửi lên từ Form HTML
+		startTime := c.Query("start_time")
+		endTime := c.Query("end_time")
+		searchTitle := strings.ToLower(strings.TrimSpace(c.Query("search_title")))
 
+		// 2. Định dạng lại chuỗi thời gian từ HTML (thay chữ T bằng dấu cách để khớp dữ liệu đĩa cứng)
+		if startTime != "" {
+			startTime = strings.Replace(startTime, "T", " ", 1)
+		}
+		if endTime != "" {
+			endTime = strings.Replace(endTime, "T", " ", 1)
+		}
+
+		var filteredCases []CaseSummary
+
+		// 3. Duyệt mảng dữ liệu tổng để sàng lọc
+		for _, v := range globalCases {
+			match := true
+
+			// Lọc điều kiện 1: Từ ngày (Bỏ qua nếu ô nhập trống)
+			if startTime != "" && v.OccurredAt < startTime {
+				match = false
+			}
+			// Lọc điều kiện 2: Đến ngày (Bỏ qua nếu ô nhập trống)
+			if endTime != "" && v.OccurredAt > endTime {
+				match = false
+			}
+			// Lọc điều kiện 3: Từ khóa tội danh/hành vi
+			if searchTitle != "" {
+				inTitle := strings.Contains(strings.ToLower(v.Title), searchTitle)
+				inSuspect := strings.Contains(strings.ToLower(v.Suspect), searchTitle)
+				inDesc := strings.Contains(strings.ToLower(v.Description), searchTitle)
+
+				// Nếu từ khóa không nằm trong Tiêu đề, Nghi phạm, cũng không có trong Mô tả -> Loại
+				if !inTitle && !inSuspect && !inDesc {
+					match = false
+				}
+			}
+
+			// Nếu vượt qua tất cả bộ lọc -> Đưa vào danh sách kết quả
+			if match {
+				filteredCases = append(filteredCases, v)
+			}
+		}
+
+		// 4. Trả về giao diện chuyên dụng search.html cùng dữ liệu sau khi lọc
+		c.HTML(http.StatusOK, "search.html", gin.H{
+			"LoggedIn":    isLoggedIn,
+			"Role":        currentRole,
+			"FullName":    currentFullName,
+			"RecentCases": filteredCases, // Danh sách vụ án đã thu hẹp
+			"SuccessMsg":  fmt.Sprintf("Hệ thống tìm thấy %d kết quả phù hợp nghiệp vụ.", len(filteredCases)),
+
+			// Đẩy ngược lại giá trị để giữ chữ trên ô nhập sau khi load trang
+			"StartTime":   c.Query("start_time"),
+			"EndTime":     c.Query("end_time"),
+			"SearchTitle": c.Query("search_title"),
+		})
+	})
+	r.GET("/export", func(c *gin.Context) {
+		// 1. Thiết lập Header để trình duyệt hiểu đây là lệnh tải file về máy
+		c.Header("Content-Description", "File Transfer")
+		c.Header("Content-Disposition", "attachment; filename=Bao_Cao_Ho_So_Vu_An.csv")
+		c.Header("Content-Type", "text/csv; charset=utf-8")
+
+		// 2. GIẢI QUYẾT LỖI FONT: Ghi mã BOM (Byte Order Mark) của UTF-8 vào đầu file.
+		// Nhờ 3 byte này, khi double-click mở trực tiếp bằng Excel trên Windows sẽ không bị lỗi chữ Tiếng Việt.
+		c.Writer.Write([]byte{0xEF, 0xBB, 0xBF})
+
+		// 3. Tạo dòng tiêu đề cột (Header) cho file Excel
+		csvContent := "Mã Vụ Án,Ngày Xảy Ra,Tội Danh/Tiêu Đề,Đối Tượng Nghi Vấn,Mô Tả Diễn Biến,Báo Cáo Pháp Y,Vật Chứng Tịch Thu\n"
+
+		// 4. Vòng lặp duyệt qua mảng dữ liệu tổng (đọc từ cache/đĩa cứng LevelDB lên) để ghi từng dòng
+		for _, v := range globalCases {
+
+			cleanDesc := strings.ReplaceAll(strings.ReplaceAll(v.Description, "\n", " "), ",", ";")
+			cleanAutopsy := strings.ReplaceAll(strings.ReplaceAll(v.AutopsyReport, "\n", " "), ",", ";")
+			cleanEvidence := strings.ReplaceAll(strings.ReplaceAll(v.EvidenceList, "\n", " "), ",", ";")
+			cleanTitle := strings.ReplaceAll(v.Title, ",", ";")
+			cleanSuspect := strings.ReplaceAll(v.Suspect, ",", ";")
+
+			// Nối các trường dữ liệu lại với nhau, ngăn cách bằng dấu phẩy theo chuẩn CSV
+			csvContent += fmt.Sprintf("%s,%s,%s,%s,%s,%s,%s\n",
+				v.CaseID,
+				v.OccurredAt,
+				cleanTitle,
+				cleanSuspect,
+				cleanDesc,
+				cleanAutopsy,
+				cleanEvidence,
+			)
+		}
+
+		// 5. Trả luồng dữ liệu thô về cho trình duyệt của người dùng tự động tải xuống
+		c.String(http.StatusOK, csvContent)
+	})
 	r.Run(":8080")
 }
