@@ -22,11 +22,11 @@
             <a class="navbar-brand" href="/"><i class="fa-solid : shield-halved me-2"></i>POLICE DISTRIBUTED DB v6.0</a>
             {{ if .LoggedIn }}
             <div class="d-flex align-items-center text-white">
-                <span class="me-3"><i class="fa-solid : user-shield me-1"></i> {{ .FullName }}</span>
+                <span class="me-3"><i class="fa-solid fa-user-shield me-1"></i> {{ .FullName }}</span>
                 <span class="badge bg-danger me-3">
                     {{ if eq .Role "chief" }}TRƯỞNG ĐỒN{{ else if eq .Role "deputy" }}PHÓ ĐỒN{{ else }}CHIẾN SĨ{{ end }}
                 </span>
-                <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid : sign-out-alt"></i> Đăng xuất</a>
+                <a href="/logout" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-sign-out-alt"></i> Đăng xuất</a>
             </div>
             {{ end }}
         </div>
@@ -38,11 +38,11 @@
             <div class="col-md-5">
                 <div class="card shadow-lg mt-5">
                     <div class="card-header bg-dark text-white text-center py-3">
-                        <h4 class="mb-0"><i class="fa-solid : lock me-2"></i>ĐỊNH DANH AN NINH BẮT BUỘC</h4>
+                        <h4 class="mb-0"><i class="fa-solid fa-lock me-2"></i>ĐỊNH DANH AN NINH BẮT BUỘC</h4>
                     </div>
                     <div class="card-body p-4">
                         {{ if .Error }}
-                        <div class="alert alert-danger d-flex align-items-center"><i class="fa-solid : triangle-exclamation me-2"></i>{{ .Error }}</div>
+                        <div class="alert alert-danger d-flex align-items-center"><i class="fa-solid fa-triangle-exclamation me-2"></i>{{ .Error }}</div>
                         {{ end }}
                         <form action="/login" method="POST">
                             <div class="mb-3">
@@ -53,7 +53,7 @@
                                 <label class="form-label">Mật khẩu tối mật</label>
                                 <input type="password" name="password" class="form-control" required placeholder="••••••••">
                             </div>
-                            <button type="submit" class="btn btn-dark w-100 py-2 font-weight-bold"><i class="fa-solid : unlock-keyhole me-2"></i>MỞ KHÓA TRUY CẬP</button>
+                            <button type="submit" class="btn btn-dark w-100 py-2 font-weight-bold"><i class="fa-solid fa-unlock-keyhole me-2"></i>MỞ KHÓA TRUY CẬP</button>
                         </form>
                     </div>
                 </div>
@@ -61,9 +61,18 @@
         </div>
         {{ else }}
 
+        <!-- KHỐI BÁO LỖI NGHIỆP VỤ (TRÙNG MÃ VỤ ÁN, SAI QUYỀN...) -->
+        {{ if .Error }}
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i><strong>Lỗi hệ thống:</strong> {{ .Error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {{ end }}
+
+        <!-- KHỐI THÔNG BÁO THÀNH CÔNG -->
         {{ if .SuccessMsg }}
         <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="fa-solid : circle-check me-2"></i><strong>Hệ thống ghi nhận:</strong> {{ .SuccessMsg }}
+            <i class="fa-solid fa-circle-check me-2"></i><strong>Hệ thống ghi nhận:</strong> {{ .SuccessMsg }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {{ end }}
@@ -72,19 +81,19 @@
             <div class="col-md-3 mb-4">
                 <div class="card shadow-sm p-3">
                     <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                        <button class="nav-link active text-start mb-2" id="nav-dashboard-tab" data-bs-toggle="pill" data-bs-target="#nav-dashboard" type="button" role="tab"><i class="fa-solid : chart-line me-2"></i>Tóm tắt vụ án & Hạ tầng</button>
-                        <button class="nav-link text-start mb-2" id="nav-search-tab" data-bs-toggle="pill" data-bs-target="#nav-search" type="button" role="tab"><i class="fa-solid : filter me-2"></i>Bộ lọc tìm kiếm nâng cao</button>
+                        <button class="nav-link active text-start mb-2" id="nav-dashboard-tab" data-bs-toggle="pill" data-bs-target="#nav-dashboard" type="button" role="tab"><i class="fa-solid fa-chart-line me-2"></i>Tóm tắt vụ án & Hạ tầng</button>
+                        <button class="nav-link text-start mb-2" id="nav-search-tab" data-bs-toggle="pill" data-bs-target="#nav-search" type="button" role="tab"><i class="fa-solid fa-filter me-2"></i>Bộ lọc tìm kiếm nâng cao</button>
                         
                         {{ if .CanAddCase }}
-                        <button class="nav-link text-start mb-2" id="nav-add-tab" data-bs-toggle="pill" data-bs-target="#nav-add" type="button" role="tab"><i class="fa-solid : folder-plus me-2"></i>Tiếp nhận hồ sơ mới</button>
+                        <button class="nav-link text-start mb-2" id="nav-add-tab" data-bs-toggle="pill" data-bs-target="#nav-add" type="button" role="tab"><i class="fa-solid fa-folder-plus me-2"></i>Tiếp nhận hồ sơ mới</button>
                         {{ else }}
-                        <button class="nav-link text-start mb-2 text-muted" disabled><i class="fa-solid : lock me-2"></i>Tiếp nhận hồ sơ (Cấp chỉ huy khóa)</button>
+                        <button class="nav-link text-start mb-2 text-muted" disabled><i class="fa-solid fa-lock me-2"></i>Tiếp nhận hồ sơ (Cấp chỉ huy khóa)</button>
                         {{ end }}
 
                         {{ if .CanManageUsers }}
-                        <button class="nav-link text-start" id="nav-users-tab" data-bs-toggle="pill" data-bs-target="#nav-users" type="button" role="tab"><i class="fa-solid : users-gear me-2"></i>Quản lý nhân viên cục bộ</button>
+                        <button class="nav-link text-start" id="nav-users-tab" data-bs-toggle="pill" data-bs-target="#nav-users" type="button" role="tab"><i class="fa-solid fa-users-gear me-2"></i>Quản lý nhân viên cục bộ</button>
                         {{ else }}
-                        <button class="nav-link text-start text-muted" disabled><i class="fa-solid : lock me-2"></i>Quản lý nhân viên (Trưởng đồn khóa)</button>
+                        <button class="nav-link text-start text-muted" disabled><i class="fa-solid fa-lock me-2"></i>Quản lý nhân viên (Trưởng đồn khóa)</button>
                         {{ end }}
                     </div>
                 </div>
@@ -95,7 +104,7 @@
                     
                     <div class="tab-pane fade show active" id="nav-dashboard" role="tabpanel" aria-labelledby="nav-dashboard-tab">
                         <div class="card shadow-sm p-4 mb-4 bg-dark text-white">
-                            <h5><i class="fa-solid : server me-2 text-warning"></i>MẠNG LƯỚI ĐĨA CỨNG GOLEVELDB REPLICATION REAL-TIME</h5>
+                            <h5><i class="fa-solid fa-server me-2 text-warning"></i>MẠNG LƯỚI ĐĨA CỨNG GOLEVELDB REPLICATION REAL-TIME</h5>
                             <p class="text-muted small">Hệ thống tự động ping kiểm tra kết nối gRPC vật lý tới các phân khu đồn an ninh.</p>
                             <div class="row text-center mt-3 text-dark">
                                 <div class="col-md-3 mb-2">
@@ -103,8 +112,8 @@
                                         <div class="fw-bold small">Đồn 1 Cốt lõi</div>
                                         <code>50051</code>
                                         <div class="mt-1">
-                                            {{ if eq .Status1 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid : circle-check"></i> HOẠT ĐỘNG</span>
-                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                            {{ if eq .Status1 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid fa-circle-check"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid fa-circle-xmark"></i> OFFLINE</span>{{ end }}
                                         </div>
                                     </div>
                                 </div>
@@ -113,8 +122,8 @@
                                         <div class="fw-bold small">Đồn 1 Dự phòng</div>
                                         <code>50053</code>
                                         <div class="mt-1">
-                                            {{ if eq .Status1Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid : shield"></i> HOẠT ĐỘNG</span>
-                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                            {{ if eq .Status1Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid fa-shield"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid fa-circle-xmark"></i> OFFLINE</span>{{ end }}
                                         </div>
                                     </div>
                                 </div>
@@ -123,8 +132,8 @@
                                         <div class="fw-bold small">Đồn 2 Cốt lõi</div>
                                         <code>50052</code>
                                         <div class="mt-1">
-                                            {{ if eq .Status2 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid : circle-check"></i> HOẠT ĐỘNG</span>
-                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                            {{ if eq .Status2 "ONLINE" }}<span class="badge bg-success"><i class="fa-solid fa-circle-check"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid fa-circle-xmark"></i> OFFLINE</span>{{ end }}
                                         </div>
                                     </div>
                                 </div>
@@ -133,19 +142,21 @@
                                         <div class="fw-bold small">Đồn 2 Dự phòng</div>
                                         <code>50054</code>
                                         <div class="mt-1">
-                                            {{ if eq .Status2Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid : shield"></i> HOẠT ĐỘNG</span>
-                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid : circle-xmark"></i> OFFLINE</span>{{ end }}
+                                            {{ if eq .Status2Rep "ONLINE" }}<span class="badge bg-primary"><i class="fa-solid fa-shield"></i> HOẠT ĐỘNG</span>
+                                            {{ else }}<span class="badge bg-danger"><i class="fa-solid fa-circle-xmark"></i> OFFLINE</span>{{ end }}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div> <div class="card shadow-sm p-4">
+                        </div> 
+                        
+                        <div class="card shadow-sm p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h4 class="card-title text-dark mb-0">
-                                    <i class="fa-solid : list me-2"></i>HỒ SƠ NGHIỆP VỤ MỚI CẬP NHẬT
+                                    <i class="fa-solid fa-list me-2"></i>HỒ SƠ NGHIỆP VỤ MỚI CẬP NHẬT
                                 </h4>
                                 <a href="/export" class="btn btn-success btn-sm shadow-sm px-3">
-                                    <i class="fa-solid : file-excel me-2"></i>Xuất Báo Cáo Toàn Bộ
+                                    <i class="fa-solid fa-file-excel me-2"></i>Xuất Báo Cáo Toàn Bộ
                                 </a>
                             </div>
 
@@ -169,16 +180,17 @@
                                             <td><span class="badge bg-secondary">{{ .Suspect }}</span></td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#modal-{{ .CaseID }}">
-                                                    <i class="fa-solid : eye me-1"></i> Hồ sơ chi tiết
+                                                    <i class="fa-solid fa-eye me-1"></i> Hồ sơ chi tiết
                                                 </button>
                                             </td>
                                         </tr>
 
+                                        <!-- MODAL CHI TIẾT VỤ ÁN -->
                                         <div class="modal fade" id="modal-{{ .CaseID }}" tabindex="-1" aria-hidden="true">
                                             <div class="modal-dialog modal-lg modal-dialog-centered">
                                                 <div class="modal-content">
                                                     <div class="modal-header bg-dark text-white">
-                                                        <h5 class="modal-title"><i class="fa-solid : folder-open me-2 text-warning"></i>HỒ SƠ TỐ TỤNG CHI TIẾT - {{ .CaseID }}</h5>
+                                                        <h5 class="modal-title"><i class="fa-solid fa-folder-open me-2 text-warning"></i>HỒ SƠ TỐ TỤNG CHI TIẾT - {{ .CaseID }}</h5>
                                                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                     </div>
                                                     <div class="modal-body p-4 text-start">
@@ -187,20 +199,31 @@
                                                             <div class="col-md-6"><h6><strong>Nghi can chính:</strong> <span class="badge bg-danger">{{ .Suspect }}</span></h6></div>
                                                             <div class="col-md-12"><hr class="my-1"></div>
                                                             <div class="col-md-12">
-                                                                <label class="fw-bold text-primary"><i class="fa-solid : file-lines me-1"></i> 1. Mô tả chi tiết diễn biến vụ án:</label>
+                                                                <label class="fw-bold text-primary"><i class="fa-solid fa-file-lines me-1"></i> 1. Mô tả chi tiết diễn biến vụ án:</label>
                                                                 <p class="p-3 bg-light rounded border text-muted" style="white-space: pre-wrap;">{{ .Description }}</p>
                                                             </div>
                                                             <div class="col-md-12">
-                                                                <label class="fw-bold text-danger"><i class="fa-solid : bone me-1"></i> 2. Biên bản giám định:</label>
+                                                                <label class="fw-bold text-danger"><i class="fa-solid fa-bone me-1"></i> 2. Biên bản giám định:</label>
                                                                 <p class="p-3 bg-light rounded border text-muted" style="white-space: pre-wrap;">{{ .AutopsyReport }}</p>
                                                             </div>
                                                             <div class="col-md-12">
-                                                                <label class="fw-bold text-success"><i class="fa-solid : boxes-stacked me-1"></i> 3. Vật chứng thu giữ:</label>
+                                                                <label class="fw-bold text-success"><i class="fa-solid fa-boxes-stacked me-1"></i> 3. Vật chứng thu giữ:</label>
                                                                 <p class="p-3 bg-light rounded border text-muted" style="white-space: pre-wrap;">{{ .EvidenceList }}</p>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="modal-footer bg-light">
+                                                    <div class="modal-footer bg-light d-flex justify-content-between">
+                                                        <div>
+                                                            <!-- CHỈ HIỂN THỊ NÚT XÓA NẾU CÓ QUYỀN GHI DỮ LIỆU -->
+                                                            {{ if $.CanAddCase }}
+                                                            <form action="/case/delete" method="POST" onsubmit="return confirm('CẢNH BÁO NGUY HIỂM:\nBạn có chắc chắn muốn XÓA VĨNH VIỄN hồ sơ vụ án [{{ .CaseID }}] khỏi toàn bộ hệ thống lưu trữ phân tán GoLevelDB? Hành động này không thể hoàn tác!');" style="display: inline;">
+                                                                <input type="hidden" name="case_id" value="{{ .CaseID }}">
+                                                                <button type="submit" class="btn btn-danger">
+                                                                    <i class="fa-solid fa-trash-can me-1"></i> Xóa vụ án
+                                                                </button>
+                                                            </form>
+                                                            {{ end }}
+                                                        </div>
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng cửa sổ</button>
                                                     </div>
                                                 </div>
@@ -217,7 +240,7 @@
 
                     <div class="tab-pane fade" id="nav-search" role="tabpanel" aria-labelledby="nav-search-tab">
                         <div class="card shadow-sm p-4">
-                            <h4 class="card-title text-dark mb-3"><i class="fa-solid : filter me-2"></i>HỆ THỐNG TRUY VẤN VÀ SÀNG LỌC ĐA ĐIỀU KIỆN</h4>
+                            <h4 class="card-title text-dark mb-3"><i class="fa-solid fa-filter me-2"></i>HỆ THỐNG TRUY VẤN VÀ SÀNG LỌC ĐA ĐIỀU KIỆN</h4>
                             
                             <form action="/search" method="GET" class="bg-light p-3 rounded border mb-4">
                                 <div class="row g-3">
@@ -234,18 +257,17 @@
                                         <input type="text" name="search_title" class="form-control" placeholder="Ví dụ: Trộm cắp..." value="{{ .SearchTitle }}">
                                     </div>
                                     <div class="col-md-12 text-end">
-                                        <button type="submit" class="btn btn-dark px-4"><i class="fa-solid : filter me-2"></i>Áp dụng bộ lọc nghiệp vụ</button>
+                                        <button type="submit" class="btn btn-dark px-4"><i class="fa-solid fa-filter me-2"></i>Áp dụng bộ lọc nghiệp vụ</button>
                                     </div>
                                 </div>
                             </form>
 
-                            <!-- Kết quả sàng lọc (Phần tìm kiếm nâng cao) -->
                             {{ if .HasSearched }}
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 class="text-dark fw-bold mb-0"><i class="fa-solid : list-check me-2"></i>Hồ sơ vụ án khớp điều kiện nghiệp vụ</h5>
+                                    <h5 class="text-dark fw-bold mb-0"><i class="fa-solid fa-list-check me-2"></i>Hồ sơ vụ án khớp điều kiện nghiệp vụ</h5>
                                     <a href="/export-search?start_time={{ .StartTime }}&end_time={{ .EndTime }}&search_title={{ .SearchTitle }}" class="btn btn-outline-success btn-sm fw-bold">
-                                        <i class="fa-solid : download me-2"></i>Tải file báo cáo (.csv)
+                                        <i class="fa-solid fa-download me-2"></i>Tải file báo cáo (.csv)
                                     </a>
                                 </div>
 
@@ -255,13 +277,11 @@
                                         <h2 class="accordion-header" id="search-heading-{{ .CaseID }}">
                                             <button class="accordion-button collapsed bg-white py-3" type="button" data-bs-toggle="collapse" data-bs-target="#search-collapse-{{ .CaseID }}">
                                                 <div class="d-flex justify-content-between align-items-center w-100 me-3">
-                                                    <!-- Bên trái: Badge đỏ + Tên vụ án -->
                                                     <div>
                                                         <span class="badge bg-danger me-2 px-2 py-1.5">{{ .CaseID }}</span>
                                                         <strong class="text-dark">{{ .Title }}</strong>
                                                         <span class="badge bg-secondary ms-2 fw-normal">Nghi phạm: {{ .Suspect }}</span>
                                                     </div>
-                                                    <!-- Bên phải: Cột ngày tháng hiển thị căn lề phải -->
                                                     <div class="text-muted small fw-semibold">
                                                         {{ .OccurredAt }}
                                                     </div>
@@ -285,9 +305,9 @@
 
                     <div class="tab-pane fade" id="nav-add" role="tabpanel" aria-labelledby="nav-add-tab">
                         <div class="card shadow-sm p-4">
-                            <h4 class="card-title text-success mb-3"><i class="fa-solid : folder-plus me-2"></i>TIẾP NHẬN HỒ SƠ VỤ ÁN CHI TIẾT</h4>
+                            <h4 class="card-title text-success mb-3"><i class="fa-solid fa-folder-plus me-2"></i>TIẾP NHẬN HỒ SƠ VỤ ÁN CHI TIẾT</h4>
                             {{ if not .CanAddCase }}
-                            <div class="alert alert-warning text-center"><i class="fa-solid : lock me-2"></i>Tài khoản của bạn không có quyền ghi dữ liệu phân tán.</div>
+                            <div class="alert alert-warning text-center"><i class="fa-solid fa-lock me-2"></i>Tài khoản của bạn không có quyền ghi dữ liệu phân tán.</div>
                             {{ else }}
                             <form action="/add" method="POST" class="row g-3">
                                 <div class="col-md-4">
@@ -319,7 +339,7 @@
                                     <textarea name="evidence_list" class="form-control" rows="2" placeholder="Ví dụ: 01 Dao bấm hung khí..." required></textarea>
                                 </div>
                                 <div class="col-md-12 text-end mt-4">
-                                    <button type="submit" class="btn btn-success btn-lg px-5"><i class="fa-solid : server me-2"></i>Tiếp nhận hồ sơ</button>
+                                    <button type="submit" class="btn btn-success btn-lg px-5"><i class="fa-solid fa-server me-2"></i>Tiếp nhận hồ sơ</button>
                                 </div>
                             </form>
                             {{ end }}
@@ -328,13 +348,13 @@
 
                     <div class="tab-pane fade" id="nav-users" role="tabpanel" aria-labelledby="nav-users-tab">
                         <div class="card shadow-sm p-4">
-                            <h4 class="card-title text-dark mb-4"><i class="fa-solid : users me-2"></i>DANH SÁCH CÁN BỘ TRỰC THUỘC PHÂN KHU</h4>
+                            <h4 class="card-title text-dark mb-4"><i class="fa-solid fa-users me-2"></i>DANH SÁCH CÁN BỘ TRỰC THUỘC PHÂN KHU</h4>
                             
                             {{ if not .CanManageUsers }}
-                            <div class="alert alert-danger text-center"><i class="fa-solid : shield-cat me-2"></i>Chỉ Trưởng đồn mới có quyền truy cập dữ liệu nhân sự!</div>
+                            <div class="alert alert-danger text-center"><i class="fa-solid fa-shield-cat me-2"></i>Chỉ Trưởng đồn mới có quyền truy cập dữ liệu nhân sự!</div>
                             {{ else }}
                             
-                            <h5 class="text-danger mb-2"><i class="fa-solid : user-gear me-2"></i>1. Trưởng đồn</h5>
+                            <h5 class="text-danger mb-2"><i class="fa-solid fa-user-gear me-2"></i>1. Trưởng đồn</h5>
                             <div class="table-responsive mb-4">
                                 <table class="table table-hover border align-middle">
                                     <thead class="table-dark">
@@ -362,7 +382,7 @@
 
                             <hr class="my-4">
 
-                            <h5 class="text-warning mb-2"><i class="fa-solid : user-shield me-2"></i>2. Phó đồn</h5>
+                            <h5 class="text-warning mb-2"><i class="fa-solid fa-user-shield me-2"></i>2. Phó đồn</h5>
                             <div class="table-responsive mb-4">
                                 <table class="table table-hover border align-middle">
                                     <thead class="table-secondary">
@@ -390,7 +410,7 @@
 
                             <hr class="my-4">
 
-                            <h5 class="text-primary mb-2"><i class="fa-solid : user-secret me-2"></i>3. Lực Lượng Trinh Sát & Chuyên Viên (Viewer)</h5>
+                            <h5 class="text-primary mb-2"><i class="fa-solid fa-user-secret me-2"></i>3. Lực Lượng Trinh Sát & Chuyên Viên (Viewer)</h5>
                             <div class="table-responsive">
                                 <table class="table table-hover border align-middle">
                                     <thead class="table-secondary">

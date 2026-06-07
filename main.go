@@ -26,7 +26,7 @@ func (s *server) PutCase(ctx context.Context, req *pb.CaseRequest) (*pb.CaseResp
 	if err != nil {
 		return &pb.CaseResponse{Success: false, Message: "Lỗi hạ đĩa GoLevelDB: " + err.Error()}, nil
 	}
-	fmt.Printf("📥 [HỆ THỐNG] Đã ghi nhận Key: %s vào đĩa cứng thành công.\n", req.CaseId)
+	fmt.Printf("📥 [PUT] Đã ghi nhận Key: %s vào đĩa cứng thành công.\n", req.CaseId)
 	return &pb.CaseResponse{Success: true, Message: "Dữ liệu đã được lưu trữ an toàn."}, nil
 }
 
@@ -39,13 +39,34 @@ func (s *server) GetCase(ctx context.Context, req *pb.CaseRequest) (*pb.CaseResp
 	return &pb.CaseResponse{Success: true, CaseDataJson: string(data), Message: "Thành công"}, nil
 }
 
+// =========================================================================
+// CẬP NHẬT: Hàm xử lý XÓA dữ liệu khỏi LevelDB (Delete) chuẩn hóa Log
+// =========================================================================
+func (s *server) DeleteCase(ctx context.Context, req *pb.CaseRequest) (*pb.CaseResponse, error) {
+	// Kiểm tra Key tồn tại trước khi xóa để log chính xác hơn (Tùy chọn nghiệp vụ)
+	hasKey, err := s.db.Has([]byte(req.CaseId), nil)
+	if err != nil {
+		return &pb.CaseResponse{Success: false, Message: "Lỗi kiểm tra đĩa: " + err.Error()}, nil
+	}
+	if !hasKey {
+		return &pb.CaseResponse{Success: true, Message: "Hồ sơ không tồn tại hoặc đã được loại bỏ trước đó."}, nil
+	}
+
+	// Thực hiện xóa cứng dữ liệu
+	err = s.db.Delete([]byte(req.CaseId), nil)
+	if err != nil {
+		return &pb.CaseResponse{Success: false, Message: "Lỗi xóa dữ liệu trên đĩa LevelDB: " + err.Error()}, nil
+	}
+	fmt.Printf("🗑️ [DELETE] Đã xóa Key: %s khỏi đĩa cứng thành công.\n", req.CaseId)
+	return &pb.CaseResponse{Success: true, Message: "Dữ liệu đã được loại bỏ khỏi đĩa an toàn."}, nil
+}
+
 func main() {
 	// Sử dụng flag để đọc tham số truyền vào từ Terminal
 	port := flag.String("port", "50051", "Cổng mạng chạy gRPC Server")
 	dbPath := flag.String("db", "db_don_1", "Đường dẫn thư mục lưu trữ GoLevelDB")
 	flag.Parse()
 
-	// Nếu người dùng truyền tham số dạng không có flag (Ví dụ: go run main.go 50054 db_don_2_du_phong)
 	args := flag.Args()
 	if len(args) >= 2 {
 		*port = args[0]
@@ -59,16 +80,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Tối ưu: Đóng DB an toàn kể cả khi bấm Ctrl+C đột ngột tránh hỏng file dữ liệu
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		fmt.Println("\n🛑 Đang đóng cơ sở dữ liệu GoLevelDB an toàn...")
-		db.Close()
-		os.Exit(0)
-	}()
-
 	lis, err := net.Listen("tcp", ":"+*port)
 	if err != nil {
 		fmt.Printf("🚨 Lỗi: Cổng mạng %s đã bị chiếm dụng! Vui lòng kiểm tra lại cấu hình phân bổ cổng. %v\n", *port, err)
@@ -76,8 +87,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Khởi tạo gRPC Server
 	s := grpc.NewServer()
 	pb.RegisterPoliceStorageServiceServer(s, &server{db: db})
+
+	// =========================================================================
+	// TỐI ƯU HOÀN HẢO: Cơ chế Graceful Shutdown đóng cả gRPC và LevelDB an toàn
+	// =========================================================================
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		fmt.Println("\n🛑 [HỆ THỐNG] Đang kích hoạt quy trình dừng khẩn cấp an toàn...")
+
+		fmt.Println("1. Ngắt tiếp nhận các yêu cầu gRPC mới và đợi các request cũ kết thúc...")
+		s.GracefulStop()
+
+		fmt.Println("2. Đang đóng cơ sở dữ liệu GoLevelDB xuống đĩa cứng...")
+		db.Close()
+
+		fmt.Println("💚 Hệ thống đã tắt hoàn toàn an toàn. Dữ liệu không bị ảnh hưởng.")
+		os.Exit(0)
+	}()
 
 	fmt.Printf("🚀 ĐỒN AN NINH PHÂN TÁN ĐANG CHẠY TẠI CỔNG gRPC: localhost:%s\n", *port)
 	if err := s.Serve(lis); err != nil {

@@ -8,7 +8,8 @@ option go_package = "./storage";
 // Dịch vụ lưu trữ gRPC liên thông
 service PoliceStorageService {
     rpc PutCase (CaseRequest) returns (CaseResponse);
-    rpc GetCase (CaseRequest) returns (CaseResponse); // Đã đồng bộ dùng chung CaseRequest/Response cho gọn
+    rpc GetCase (CaseRequest) returns (CaseResponse); 
+    rpc DeleteCase (CaseRequest) returns (CaseResponse);
 }
 
 // Cấu trúc dữ liệu truyền nhận

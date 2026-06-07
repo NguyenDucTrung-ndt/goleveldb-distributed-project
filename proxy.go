@@ -98,17 +98,7 @@ var userDB = map[string]UserAccount{
 	"phap_y_03":   {Password: "matkhau03", Role: roleViewer, FullName: "Thượng úy Nguyễn Thị Thu (Chuyên viên Pháp y)"},
 }
 
-var globalCases = []CaseSummary{
-	{
-		CaseID:        "VA_2026_HN001",
-		OccurredAt:    "2026-05-15 22:30",
-		Title:         "Giết người cướp tài sản công vụ",
-		Suspect:       "Nguyễn Văn Hoành",
-		Description:   "Đối tượng Hoành đột nhập vào trạm gác lúc nửa đêm, dùng hung khí tấn công chiến sĩ trực ban từ phía sau nhằm lấy đi tài liệu tối mật.",
-		AutopsyReport: "Nạn nhân tử vong do mất máu cấp. Vết thương chí mạng sâu 5cm ở vùng gáy do vật sắc nhọn gây ra.",
-		EvidenceList:  "01 Cây dao bấm kim loại màu đen có dính vết máu; 01 Xe máy tháo biển số.",
-	},
-}
+var globalCases = []CaseSummary{}
 
 var currentRole = ""
 var currentFullName = ""
@@ -161,8 +151,8 @@ func loadCasesFromFile() {
 func main() {
 	loadCasesFromFile()
 	ring := NewPoliceHashRing(10)
-	ring.AddStation("127.0.0.1:50051") // Đồn 1
-	ring.AddStation("127.0.0.1:50052") // Đồn 2
+	ring.AddStation("127.0.0.1:50051")
+	ring.AddStation("127.0.0.1:50052")
 	r := gin.Default()
 	_ = r.SetTrustedProxies(nil)
 	r.LoadHTMLGlob("templates/*")
@@ -170,6 +160,10 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		sort.Slice(globalCases, func(i, j int) bool { return globalCases[i].OccurredAt > globalCases[j].OccurredAt })
 		msg := c.Query("msg")
+
+		// CẬP NHẬT: Đọc thêm tham số báo lỗi truyền từ URL về nếu có trùng mã
+		errMsg := c.Query("error")
+
 		status1 := checkNodeStatus("127.0.0.1:50051")
 		status1Rep := checkNodeStatus("127.0.0.1:50053")
 		status2 := checkNodeStatus("127.0.0.1:50052")
@@ -183,6 +177,7 @@ func main() {
 			"UserList":       userDB,
 			"RecentCases":    globalCases,
 			"SuccessMsg":     msg,
+			"Error":          errMsg, // Đẩy thông báo lỗi ra giao diện index.html
 			"Status1":        status1,
 			"Status1Rep":     status1Rep,
 			"Status2":        status2,
@@ -206,58 +201,33 @@ func main() {
 		c.Redirect(http.StatusSeeOther, "/")
 	})
 
-	r.POST("/user/add", func(c *gin.Context) {
-		if !isLoggedIn || !canManageUsers(currentRole) {
-			c.String(http.StatusForbidden, "Truy cập bị chặn. Chỉ Trưởng đồn mới có quyền này.")
-			return
-		}
-		newUsername := strings.TrimSpace(c.PostForm("username"))
-		newPassword := c.PostForm("password")
-		newRole := c.PostForm("role")
-		newFullName := strings.TrimSpace(c.PostForm("full_name"))
-
-		if newUsername == "" || newPassword == "" || newFullName == "" {
-			c.Redirect(http.StatusSeeOther, "/?msg="+uint32ToString(crc32.ChecksumIEEE([]byte("Vui lòng điền đủ thông tin!"))))
-			return
-		}
-		if _, exists := userDB[newUsername]; exists {
-			c.Redirect(http.StatusSeeOther, "/?msg=Tai khoan da ton tai!")
-			return
-		}
-
-		userDB[newUsername] = UserAccount{
-			Password: newPassword,
-			Role:     newRole,
-			FullName: newFullName,
-		}
-		c.Redirect(http.StatusSeeOther, "/?msg=Them can bo thanh cong!")
-	})
-
-	r.POST("/user/delete", func(c *gin.Context) {
-		if !isLoggedIn || !canManageUsers(currentRole) {
-			c.String(http.StatusForbidden, "Truy cập bị chặn. Chỉ Trưởng đồn mới có quyền này.")
-			return
-		}
-		targetUsername := c.PostForm("username")
-		if targetUsername == "sep2026" {
-			c.Redirect(http.StatusSeeOther, "/?msg=Khong the xoa tai khoan Truong don!")
-			return
-		}
-		if _, exists := userDB[targetUsername]; !exists {
-			c.Redirect(http.StatusSeeOther, "/?msg=Tai khoan khong ton tai!")
-			return
-		}
-
-		delete(userDB, targetUsername)
-		c.Redirect(http.StatusSeeOther, "/?msg=Xoa can bo thanh cong!")
-	})
-
 	r.POST("/add", func(c *gin.Context) {
 		if !isLoggedIn || !canAddCase(currentRole) {
 			c.String(http.StatusForbidden, "Truy cập bị chặn.")
 			return
 		}
-		caseID := c.PostForm("case_id")
+
+		// Cắt khoảng trắng thừa ở hai đầu mã vụ án tránh lỗi nhập "VA01 " và "VA01"
+		caseID := strings.TrimSpace(c.PostForm("case_id"))
+
+		if caseID == "" {
+			c.Redirect(http.StatusSeeOther, "/?error="+strings.ReplaceAll("Mã vụ án không được phép để trống!", " ", "%20"))
+			return
+		}
+
+		// =========================================================================
+		// ĐOẠN KHẮC PHỤC: Kiểm tra trùng mã vụ án trong bộ nhớ lưu trữ
+		// =========================================================================
+		for _, v := range globalCases {
+			if strings.EqualFold(v.CaseID, caseID) { // So sánh không phân biệt chữ hoa chữ thường
+				errMsg := fmt.Sprintf("🚨 LỖI NGHIỆP VỤ: Mã vụ án [%s] đã tồn tại trên hệ thống dữ liệu!", caseID)
+				// Chuyển hướng về trang chủ kèm thông báo lỗi bằng query param
+				c.Redirect(http.StatusSeeOther, "/?error="+strings.ReplaceAll(errMsg, " ", "%20"))
+				return
+			}
+		}
+		// =========================================================================
+
 		title := c.PostForm("title")
 		suspect := c.PostForm("suspect")
 		occurredAt := strings.Replace(c.PostForm("occurred_at"), "T", " ", 1)
@@ -333,11 +303,7 @@ func main() {
 		})
 	})
 
-	// =========================================================================
-	// SỬA LỖI 404 VÀ THỰC HIỆN PHÂN QUYỀN TRUY CẬP TỪNG ĐỒN (DYNAMIC ROUTING)
-	// =========================================================================
 	r.GET("/node/:port", func(c *gin.Context) {
-		// 1. KIỂM TRA ĐĂNG NHẬP VÀ PHÂN QUYỀN (Chỉ cho Chief và Deputy vào)
 		if !isLoggedIn || (currentRole != roleChief && currentRole != roleDeputy) {
 			c.HTML(http.StatusForbidden, "index.html", gin.H{
 				"LoggedIn": isLoggedIn,
@@ -348,10 +314,8 @@ func main() {
 			return
 		}
 
-		// 2. LẤY THÔNG SỐ CỔNG (PORT) TỪ ĐƯỜNG DẪN URL
 		port := c.Param("port")
 
-		// Xác định thông tin của Node dựa trên Port để hiển thị động lên giao diện
 		stationName := "ĐỒN AN NINH TRUNG TÂM"
 		mainAddr := "127.0.0.1:" + port
 		backupAddr := "N/A (Chưa cấu hình Node dự phòng)"
@@ -369,13 +333,11 @@ func main() {
 			currentStationIdx = "2"
 		}
 
-		// 3. LỌC DỮ LIỆU THỰC TẾ TRÊN HASH RING THUỘC VỀ ĐỒN NÀY
 		searchTitle := strings.ToLower(strings.TrimSpace(c.Query("search_title")))
 		var stationCases []CaseSummary
 
 		for _, v := range globalCases {
 			assignedStation := ring.RouteCase(v.CaseID)
-			// Nếu vụ án được định tuyến chính xác vào Main Node tương ứng
 			if assignedStation == mainAddr {
 				if searchTitle == "" || strings.Contains(strings.ToLower(v.Title), searchTitle) || strings.Contains(strings.ToLower(v.Suspect), searchTitle) {
 					stationCases = append(stationCases, v)
@@ -383,11 +345,9 @@ func main() {
 			}
 		}
 
-		// 4. KIỂM TRA TRẠNG THÁI VẬT LÝ THỜI GIAN THỰC
 		status := checkNodeStatus(mainAddr)
 		statusRep := checkNodeStatus(backupAddr)
 
-		// 5. TRẢ VỀ TRANG CHI TIẾT ĐỒN MẠNG KHÔNG BỊ LỖI 404
 		c.HTML(http.StatusOK, "station_detail.html", gin.H{
 			"LoggedIn":       isLoggedIn,
 			"Role":           currentRole,
