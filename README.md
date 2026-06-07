@@ -3,6 +3,34 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/NguyenDucTrung-ndt/goleveldb-distributed-project)](https://goreportcard.com/report/github.com/NguyenDucTrung-ndt/goleveldb-distributed-project)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+## ⚙️ Cơ Chế Điều Phối và Lưu Trữ Dữ Liệu (Consistent Hashing)
+
+Hệ thống không phân phối hồ sơ vụ án theo kiểu ngẫu nhiên hay chia đều 50-50, mà sử dụng thuật toán **Consistent Hashing (Băm nhất quán)** để tự động quyết định một vụ án sẽ được lưu trữ tại **Đồn 1** hay **Đồn 2** dựa trên mã **`CaseID`**.
+
+### 📌 Nguyên lý hoạt động chi tiết
+
+1. **Khởi tạo vòng tròn số (Hash Ring):** Hệ thống thiết lập một vòng tròn số logic (giới hạn từ 0 đến 4.294.967.295). Khi khởi động, **Đồn 1** (`Cổng 50051`) và **Đồn 2** (`Cổng 50052`) sẽ tạo ra 10 "nút ảo" (Virtual Nodes) tương ứng cho mỗi đồn, sau đó tự băm và "cắm mốc" cố định tại các vị trí ngẫu nhiên trên vòng tròn này.
+
+2. **Định vị vụ án trên vòng tròn:** Khi bạn bấm nút **Thêm vụ án**, Proxy sẽ lấy mã độc nhất `CaseID` (Ví dụ: `VA_2026_HN001`) đem đi băm thành một con số cụ thể, xác định vị trí của vụ án đó trên vòng tròn số.
+
+3. **Tìm đồn lưu trữ chính (Master Node):** Từ vị trí của vụ án, hệ thống sẽ quét **theo chiều kim đồng hồ** trên vòng tròn. Vụ án di chuyển gặp "nút ảo" của đồn nào đầu tiên, dữ liệu sẽ lập tức được gửi về gRPC Server của đồn đó để ghi xuống cơ sở dữ liệu LevelDB.
+
+> 💡 **Đặc điểm kỹ thuật:**
+> * Vì mã băm của một `CaseID` là cố định, nên vụ án đó sẽ **luôn luôn** rơi vào một đồn duy nhất, giúp hệ thống tra cứu chính xác tuyệt đối mà không cần tìm kiếm mù quáng trên toàn bộ các đồn.
+> * Để thử nghiệm tính năng phân tán (khiến dữ liệu nhảy từ Đồn 1 sang Đồn 2), bạn chỉ cần **thay đổi ký tự của mã vụ án** khi nhập liệu (Ví dụ thử nghiệm với: `VA01`, `VA02`, `VA03`...). Hàm băm thay đổi sẽ đẩy vụ án sang phân vùng của đồn khác.
+
+---
+
+### 🔄 Cơ chế Sao lưu Đồng thời (Replication)
+
+Để đảm bảo an toàn an ninh dữ liệu khi có sự cố sập nguồn (Fault Tolerance), ngay sau khi ghi thành công vào đồn chính (Master), Proxy sẽ tự động tra cứu bản đồ cấu hình để nhân bản dữ liệu sang đồn dự phòng (Replica) tương ứng:
+
+* Nếu vụ án thuộc về **Đồn 1** (`:50051`) ➡️ Tự động đồng bộ sang **Đồn 1 Dự phòng** (`:50053`).
+* Nếu vụ án thuộc về **Đồn 2** (`:50052`) ➡️ Tự động đồng bộ sang **Đồn 2 Dự phòng** (`:50054`).
+
+Nhờ cơ chế này, hồ sơ vụ án luôn được hạ đĩa an toàn tại **2 đồn độc lập** cùng một lúc.
+
+
 **POLICE DISTRIBUTED DB v6.0** là hệ thống quản lý và điều hành hồ sơ nghiệp vụ vụ án an ninh được xây dựng trên kiến trúc phân tán. Hệ thống trích xuất dữ liệu thời gian thực từ các phân khu địa cứng local sử dụng **GoLevelDB**, đồng thời đồng bộ và giao tiếp giữa các phân khu (đồn an ninh chính và đồn dự phòng) thông qua giao thức **gRPC** hiệu năng cao, tích hợp giao diện web quản trị trực quan bằng framework **Gin (Golang)**.
 
 ---
