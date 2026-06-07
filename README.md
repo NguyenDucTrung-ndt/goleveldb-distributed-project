@@ -30,8 +30,11 @@ Hệ thống không phân phối hồ sơ vụ án theo kiểu ngẫu nhiên hay
 
 Nhờ cơ chế này, hồ sơ vụ án luôn được hạ đĩa an toàn tại **2 đồn độc lập** cùng một lúc.
 
+---
 
-**POLICE DISTRIBUTED DB v6.0** là hệ thống quản lý và điều hành hồ sơ nghiệp vụ vụ án an ninh được xây dựng trên kiến trúc phân tán. Hệ thống trích xuất dữ liệu thời gian thực từ các phân khu địa cứng local sử dụng **GoLevelDB**, đồng thời đồng bộ và giao tiếp giữa các phân khu (đồn an ninh chính và đồn dự phòng) thông qua giao thức **gRPC** hiệu năng cao, tích hợp giao diện web quản trị trực quan bằng framework **Gin (Golang)**.
+
+##**POLICE DISTRIBUTED DB v6.0** 
+Là hệ thống quản lý và điều hành hồ sơ nghiệp vụ vụ án an ninh được xây dựng trên kiến trúc phân tán. Hệ thống trích xuất dữ liệu thời gian thực từ các phân khu địa cứng local sử dụng **GoLevelDB**, đồng thời đồng bộ và giao tiếp giữa các phân khu (đồn an ninh chính và đồn dự phòng) thông qua giao thức **gRPC** hiệu năng cao, tích hợp giao diện web quản trị trực quan bằng framework **Gin (Golang)**.
 
 ---
 
